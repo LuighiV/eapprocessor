@@ -1,9 +1,9 @@
 #!/bin/python3
 import numpy as np
 
-from functools import partial
-from joblib import Parallel, delayed
-from eapprocessor.multi import NUM_CORES, MULTI_ENABLED
+# from functools import partial
+# from joblib import Parallel, delayed
+# from eapprocessor.multi import NUM_CORES, MULTI_ENABLED
 
 from eapprocessor.mearecapi.api import loadRecordings
 from eapprocessor.hwsimulator.adc import convertArray, convertLCADC, normalize
@@ -64,39 +64,40 @@ def applyNEOToDataset(dataset, w=1):
     return saveconverted
 
 
-def evaluateThresHoldMaximum(dataset):
+def evaluateThresHoldMaximum(dataset, number=100):
 
     listidx = []
     counts = []
     total = len(dataset)
     i = 1
     print("Start processing dataset...")
-    if MULTI_ENABLED:
-        res = Parallel(n_jobs=NUM_CORES)(
-            delayed(getIndexesOverListOfThresholdMaximum)(array) for array in
-            dataset)
-        listidx = [ind[0] for ind in res]
-        counts = [ind[1] for ind in res]
+    # if MULTI_ENABLED:
+    #     res = Parallel(n_jobs=NUM_CORES)(
+    #         delayed(getIndexesOverListOfThresholdMaximum)(array) for array in
+    #         dataset)
+    #     listidx = [ind[0] for ind in res]
+    #     counts = [ind[1] for ind in res]
 
-    else:
-        for array in dataset:
-            indexes, count = getIndexesOverListOfThresholdMaximum(array)
-            listidx += [indexes]
-            counts += [count]
-            print(f"Processed threshold {i}/{total} in dataset")
-            i += 1
+    # else:
+    for array in dataset:
+        indexes, count = getIndexesOverListOfThresholdMaximum(array,
+                                                              number=number)
+        listidx += [indexes]
+        counts += [count]
+        print(f"Processed threshold {i}/{total} in dataset")
+        i += 1
 
     return listidx, counts
 
 
-def evaluateThresHoldMaximumArray(arrDataset):
+def evaluateThresHoldMaximumArray(arrDataset, number=100):
 
     listidx = []
     counts = []
     total = len(arrDataset)
     i = 1
     for dataset in arrDataset:
-        indexes, count = evaluateThresHoldMaximum(dataset)
+        indexes, count = evaluateThresHoldMaximum(dataset, number=number)
         listidx += [indexes]
         counts += [count]
         print(f"Processed dataset {i}/{total} in array of dataset")
