@@ -1,0 +1,7 @@
+NEURON==8.0.0
+matplotlib==3.4.2
+h5py==3.3.0
+numpy==1.20.3
+efel==4.0.4
+MEArec==1.7.2
+PyYAML==5.4.1

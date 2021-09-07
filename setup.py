@@ -1,0 +1,42 @@
+import setuptools
+
+with open("README.md", "r", encoding="utf-8") as fh:
+    long_description = fh.read()
+
+setuptools.setup(
+    name="eapprocessor",
+    version="0.0.1",
+    author="Luighi Viton-Zorrilla",
+    author_email="luighiavz@gmail.com",
+    description="Scripts to process extracellular action potential recordings",
+    long_description=long_description,
+    long_description_content_type="text/markdown",
+    url="https://github.com/LuighiV/eapprocessor",
+    project_urls={
+        "Bug Tracker": "https://github.com/LuighiV/eapprocessor/issues",
+    },
+    classifiers=[
+        "Programming Language :: Python :: 3",
+        "License :: OSI Approved :: Apache Software License ",
+        "Operating System :: POSIX :: Linux ",
+    ],
+    packages=["eapprocessor"],
+    python_requires=">=3.6",
+    install_requires=[
+        'colorlog',
+        'numpy',
+        'MEArec @ git+git://github.com/LuighiV/MEArec@master#egg=MEArec',
+        'NEURON',
+        'matplotlib',
+        'h5py',
+        'numpy',
+        'efel',
+        'MEArec',
+        'PyYAML'
+    ],
+    entry_points={
+        'console_scripts': [
+            'eapprocessor=eapprocessor.__main__',
+        ],
+    },
+)
