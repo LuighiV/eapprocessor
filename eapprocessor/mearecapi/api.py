@@ -12,24 +12,52 @@ default_dir = Path(DEFAULT_DATA_INFO)
 use_loader = bool(StrictVersion(yaml.__version__) >= StrictVersion('5.0.0'))
 
 
-def getConfigInfo():
-    with (default_dir / 'mearec.conf').open() as f:
-        if use_loader:
-            default_info = yaml.load(f, Loader=yaml.FullLoader)
-        else:
-            default_info = yaml.load(f)
+def getConfigInfo(datafolder=None):
+
+    if datafolder is None:
+        datafolder = default_dir
+
+        with (datafolder / 'mearec.conf').open() as f:
+            if use_loader:
+                default_info = yaml.load(f, Loader=yaml.FullLoader)
+            else:
+                default_info = yaml.load(f)
+    else:
+        datafolder = Path(datafolder)
+        default_info = {
+            "cell_models_folder": str(
+                datafolder /
+                "cell_models" /
+                "bbp"),
+            "recordings_params": str(
+                datafolder /
+                "params" /
+                "recordings_params.yaml"),
+            "templates_params": str(
+                datafolder /
+                "params" /
+                "templates_params.yaml"),
+            "recordings_folder": str(
+                datafolder.parent /
+                "output" /
+                "recordings"),
+            "templates_folder": str(
+                datafolder.parent /
+                "output" /
+                "templates")}
 
     return default_info
 
 
 def generateTemplates(
+    datafolder=None,
         n_jobs=None,
         recompile=None,
         parallel=None,
         verbose=None,
         fname=None):
 
-    config = getConfigInfo()
+    config = getConfigInfo(datafolder=datafolder)
     with open(config['templates_params'], 'r', encoding='utf8') as pf:
         if use_loader:
             params_dict = yaml.load(pf, Loader=yaml.FullLoader)
@@ -68,11 +96,12 @@ def generateTemplates(
 
 
 def generateRecordings(
+        datafolder=None,
         verbose=None,
         njobs=None,
         fname=None):
 
-    config = getConfigInfo()
+    config = getConfigInfo(datafolder=datafolder)
     with open(config['recordings_params'], 'r', encoding='utf8') as pf:
         if use_loader:
             params_dict = yaml.load(pf, Loader=yaml.FullLoader)
@@ -97,13 +126,13 @@ def generateRecordings(
 
     if fname is None:
         if params_dict['recordings']['drifting']:
-            fname = f'recordings_{n_neurons}cells_{electrode_name}' \
-                    f'_{duration}_{np.round(noise_level, 2)}uV_' \
-                    f'drift_{time.strftime("%d-%m-%Y_%H-%M")}.h5'
+            fname = f'recordings_{n_neurons}cells_{electrode_name}'
+            f'_{duration}_{np.round(noise_level, 2)}uV_'
+            f'drift_{time.strftime("%d-%m-%Y_%H-%M")}.h5'
         else:
-            fname = f'recordings_{n_neurons}cells_{electrode_name}' \
-                f'_{duration}_{np.round(noise_level, 2)}uV_' \
-                    f'{time.strftime("%d-%m-%Y_%H-%M")}.h5'
+            fname = f'recordings_{n_neurons}cells_{electrode_name}'
+            f'_{duration}_{np.round(noise_level, 2)}uV_'
+            f'{time.strftime("%d-%m-%Y_%H-%M")}.h5'
     n_neurons = info['recordings']['n_neurons']
     electrode_name = info['electrodes']['electrode_name']
     duration = info['recordings']['duration']
