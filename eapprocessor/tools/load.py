@@ -88,3 +88,51 @@ def loadNEOFromFile(f, path=''):
         neo_dict["neo"] = f.get(path + 'neo')
 
     return neo_dict
+
+
+def getFile(folder, starts, verbose=True):
+
+    folder = Path(folder).resolve()
+    filename = None
+    if folder.is_dir():
+        recording_files = [f for f in folder.rglob(starts + "*") if
+                           f.name.endswith(('.h5', '.hdf5'))]
+        recording_files.sort(reverse=True)
+        if len(recording_files) == 0:
+            raise AttributeError(folder, ' contains no neo values!')
+        else:
+            filename = recording_files[0]
+            print(f'Filename found {filename}')
+
+    return filename
+
+
+def loadCountEvaluation(folder=None, verbose=True):
+
+    record = getFile(folder, 'threshold_recordings', verbose=verbose)
+    normal = getFile(folder, 'threshold_normalized', verbose=verbose)
+    neo = getFile(folder, 'threshold_neo', verbose=verbose)
+
+    count_dict = {}
+
+    count_dict["recordings"] = loadCount(record)
+    count_dict["normalized"] = loadCount(normal)
+    count_dict["neo"] = loadCount(neo)
+
+    return count_dict
+
+
+def loadCount(filename, path=''):
+
+    f = h5py.File(str(filename), 'r')
+
+    return loadCountFromFile(f, path=path)
+
+
+def loadCountFromFile(f, path=''):
+
+    counts = []
+    if f.get(path + 'counts') is not None:
+        counts = f.get(path + 'counts')
+
+    return counts

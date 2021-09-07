@@ -43,6 +43,24 @@ def saveNEOValuesToFile(neogen, f):
     saveConvertedValuesToFile(neogen, f)
 
 
+def saveArray(array, filename=None, path='array'):
+    filename = Path(filename)
+    filename.parent.mkdir(parents=True, exist_ok=True)
+
+    with h5py.File(filename, 'w') as f:
+        f.create_dataset(path, data=array)
+
+
+def saveIndexesAndCounts(dic, filename=None, path=''):
+
+    filename = Path(filename)
+    filename.parent.mkdir(parents=True, exist_ok=True)
+
+    with h5py.File(filename, 'w') as f:
+        createIndexAndCountDataset(
+            dic, f, path)
+
+
 def saveThresholdValues(thgen, filename=None):
     filename = Path(filename)
     filename.parent.mkdir(parents=True, exist_ok=True)
@@ -75,10 +93,9 @@ def saveThresholdValuesToFile(thgen, f):
 def createIndexAndCountDataset(data, f, path=""):
 
     if len(data["indexes"]) > 0:
-        for idx in range(len(data["indexes"])):
-            for step in range(len(data["indexes"][idx])):
-                f.create_dataset(path + f'indexes/{idx}/{step}',
-                                 data=data["indexes"][idx][step])
+        f.create_dataset(
+            path + 'indexes',
+            data=data["indexes"])
 
     if len(data["counts"]) > 0:
         f.create_dataset(

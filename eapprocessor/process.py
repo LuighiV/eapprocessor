@@ -1,4 +1,6 @@
 #!/bin/python
+from eapprocessor.tools.save import saveConvertedValues, saveNEOValues, \
+    saveThresholdValues, saveIndexesAndCounts
 from eapprocessor.integrate import convertADCRecordings, normalizeArrays, \
     applyNEOToDataset, evaluateThresHoldMaximum, \
     evaluateThresHoldMaximumArray
@@ -6,9 +8,8 @@ from eapprocessor.mearecapi.api import loadRecordings
 from pathlib import Path
 import time
 import numpy as np
-from eapprocessor.tools.load import loadConvertedValues, loadNEO
-from eapprocessor.tools.save import saveConvertedValues, saveNEOValues, \
-    saveThresholdValues
+from eapprocessor.tools.load import loadConvertedValues, loadNEO, \
+    loadCountEvaluation
 
 DEFAULT_OUTPUT = "./output"
 default_dir = Path(DEFAULT_OUTPUT)
@@ -74,23 +75,39 @@ def getOverThreshold(neofile):
     neogen["threshold"] = {}
 
     print("Processing recordings")
-    listidx, counts = evaluateThresHoldMaximum(recordings)
-    neogen["threshold"]["recordings"] = {"indexes": listidx, "counts": counts}
-
-    print("Processing normalized")
-    listidx, counts = evaluateThresHoldMaximum(normalized)
-    neogen["threshold"]["normalized"] = {"indexes": listidx, "counts": counts}
-
-    print("Processing neo array")
-    listidx, counts = evaluateThresHoldMaximumArray(neo)
-    neogen["threshold"]["neo"] = {"indexes": listidx, "counts": counts}
+    listidx, counts = evaluateThresHoldMaximum(recordings, 10)
+    threcordings = {"indexes": listidx, "counts": counts}
 
     filename = str(
         default_dir /
         FOLDER_EVALUATOR /
-        f'threshold_evaluator_{time.strftime("%Y-%m-%d_%H-%M")}.h5')
+        f'threshold_recordings_{time.strftime("%Y-%m-%d_%H-%M")}.h5')
 
-    saveThresholdValues(neogen, filename)
+    saveIndexesAndCounts(threcordings, filename)
+    del threcordings
+
+    print("Processing normalized")
+    listidx, counts = evaluateThresHoldMaximum(normalized, 10)
+    thnorm = {"indexes": listidx, "counts": counts}
+
+    filename = str(
+        default_dir /
+        FOLDER_EVALUATOR /
+        f'threshold_normalized_{time.strftime("%Y-%m-%d_%H-%M")}.h5')
+
+    saveIndexesAndCounts(thnorm, filename)
+    del thnorm
+
+    print("Processing neo array")
+    listidx, counts = evaluateThresHoldMaximumArray(neo, 10)
+    thneo = {"indexes": listidx, "counts": counts}
+
+    filename = str(
+        default_dir /
+        FOLDER_EVALUATOR /
+        f'threshold_neo_{time.strftime("%Y-%m-%d_%H-%M")}.h5')
+
+    saveIndexesAndCounts(thneo, filename)
     return neogen
 
 
@@ -108,9 +125,26 @@ if __name__ == "__main__":
     neogen = loadNEO(neofolder)
     print(neogen)
 
-    thgen = getOverThreshold(neofolder)
-    print(thgen)
+    # thgen = getOverThreshold(neofolder)
+    # print(thgen)
 
-    # listidx, counts = evaluateThresHoldMaximum(normalized)
+    evalfolder = default_dir / FOLDER_EVALUATOR
 
-    # print(counts)
+    counts = loadCountEvaluation(evalfolder)
+    print(counts)
+
+    import matplotlib.pylab as plt
+
+    fig = plt.figure()
+    ax = fig.add_subplot(1, 1, 1)
+
+    ax.plot(counts["recordings"][0], label="recordings")
+    ax.plot(counts["normalized"][0], label="normalized")
+
+    for idx in range(len(counts["neo"])):
+        ax.plot(counts["neo"][idx][0], label=f"w={neogen['w'][idx]}")
+
+    ax.set_xlabel("Threshold/Amax")
+    ax.set_ylabel("Samples over threshold")
+    ax.legend()
+    plt.show()
