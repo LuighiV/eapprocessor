@@ -27,10 +27,10 @@ cell_types:
   inhibitory: ['AC', 'BP', 'BC', 'BTC', 'ChC', 'DBC', 'MC', 'NGC']
 
 seeds:
-  spiketrains: null # random seed for spiketrain generation
-  templates: null # random seed for template selection
-  convolution: null # random seed for jitter selection in convolution
-  noise: null # random seed for noise
+  spiketrains: 100 # random seed for spiketrain generation
+  templates: 100 # random seed for template selection
+  convolution: 100 # random seed for jitter selection in convolution
+  noise: 100 # random seed for noise
 
 templates:
   # recording generation parameters
