@@ -14,3 +14,18 @@ simulate extracellular and whose description is as follows:
  developed by Buccino, A.P., Einevoll, G.T. MEArec: A Fast and Customizable Testbench Simulator for Ground-truth Extracellular Spiking Activity. Neuroinform (2020). https://doi.org/10.1007/s12021-020-09467-7
 
 This project was slightly modified in this fork: https://github.com/LuighiV/MEArec which introduces minor changes to some functions to be more accesible from derived projects. Hope it could be considered in the original one 😊.
+
+
+## Notes on Jupyter and matplotlib
+
+To enable interactive widget in Jupyter notebooks, consider adding this
+configuration, according to https://github.com/matplotlib/ipympl/issues/63#issuecomment-644291452
+at `~/.jupyter/nbconfig/notebook.json`:
+
+```
+{
+  "load_extensions": {
+    "jupyter-matplotlib/extension": true,
+  }
+}
+```
