@@ -5,7 +5,7 @@ import numpy as np
 # from joblib import Parallel, delayed
 # from eapprocessor.multi import NUM_CORES, MULTI_ENABLED
 
-from eapprocessor.mearecapi.api import loadRecordings
+from eapprocessor.mearec.api import loadRecordings
 from eapprocessor.hwsimulator.adc import convertArray, convertLCADC, normalize
 from eapprocessor.preprocessor.neo import applyNEOToArray
 from eapprocessor.detector.threshold \

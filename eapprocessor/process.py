@@ -7,7 +7,7 @@ from eapprocessor.tools.save import saveConvertedValues, saveNEOValues, \
 from eapprocessor.integrate import convertADCRecordings, normalizeArrays, \
     applyNEOToDataset, evaluateThresHoldMaximum, \
     evaluateThresHoldMaximumArray
-from eapprocessor.mearecapi.api import loadRecordings
+from eapprocessor.mearec.api import loadRecordings
 from eapprocessor.tools.load import loadConvertedValues, loadNEO, \
     loadCountEvaluation, loadIndexes
 
