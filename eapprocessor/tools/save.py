@@ -92,12 +92,21 @@ def saveThresholdValuesToFile(thgen, f):
 
 def createIndexAndCountDataset(data, f, path=""):
 
-    if len(data["indexes"]) > 0:
-        f.create_dataset(
-            path + 'indexes',
-            data=data["indexes"])
+    mr.save_dict_to_hdf5(data, f, path)
+    # if len(data["thresholds"]) > 0:
+    #     f.create_dataset(
+    #         path + 'thresholds',
+    #         data=data["thresholds"])
 
-    if len(data["counts"]) > 0:
-        f.create_dataset(
-            path + 'counts',
-            data=data["counts"])
+    # if data["count_thresholds"]:
+    #     f[path + "count_thresholds"] = data["count_thresholds"]
+
+    # if len(data["indexes"]) > 0:
+    #     f.create_dataset(
+    #         path + 'indexes',
+    #         data=data["indexes"])
+
+    # if len(data["counts"]) > 0:
+    #     f.create_dataset(
+    #         path + 'counts',
+    #         data=data["counts"])
