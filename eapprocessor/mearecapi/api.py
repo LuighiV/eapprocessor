@@ -23,7 +23,8 @@ def getConfigInfo(datafolder=None):
             else:
                 default_info = yaml.load(f)
     else:
-        datafolder = Path(datafolder)
+        datafolder = Path(datafolder).resolve()
+        parentfolder = datafolder.parent.parent
         default_info = {
             "cell_models_folder": str(
                 datafolder /
@@ -38,11 +39,11 @@ def getConfigInfo(datafolder=None):
                 "params" /
                 "templates_params.yaml"),
             "recordings_folder": str(
-                datafolder.parent /
+                parentfolder /
                 "output" /
                 "recordings"),
             "templates_folder": str(
-                datafolder.parent /
+                parentfolder /
                 "output" /
                 "templates")}
 
@@ -50,27 +51,39 @@ def getConfigInfo(datafolder=None):
 
 
 def generateTemplates(
-    datafolder=None,
+        config_folder=None,
+        cell_models_folder=None,
+        templates_folder=None,
+        templates_params_file=None,
         n_jobs=None,
         recompile=None,
         parallel=None,
         verbose=None,
         fname=None):
 
-    config = getConfigInfo(datafolder=datafolder)
-    with open(config['templates_params'], 'r', encoding='utf8') as pf:
+    if config_folder is not None:
+        config = getConfigInfo(datafolder=config_folder)
+
+        if templates_params_file is None:
+            templates_params_file = config['templates_params']
+
+        if cell_models_folder is None:
+            cell_models_folder = config['cell_models_folder']
+
+        if templates_folder is None:
+            templates_folder = config['templates_folder']
+
+    with open(templates_params_file, 'r', encoding='utf8') as pf:
         if use_loader:
             params_dict = yaml.load(pf, Loader=yaml.FullLoader)
         else:
             params_dict = yaml.load(pf)
             print(params_dict)
 
-    templates_folder = config['templates_folder']
-    model_folder = config['cell_models_folder']
     print(templates_folder)
-    print(model_folder)
+    print(cell_models_folder)
     templates = mr.gen_templates(
-        cell_models_folder=model_folder,
+        cell_models_folder=cell_models_folder,
         params=params_dict,
         templates_tmp_folder=templates_folder,
         intraonly=False,
@@ -79,6 +92,7 @@ def generateTemplates(
         parallel=parallel,
         verbose=verbose)
 
+    print("Models generated")
     rot = params_dict['rot']
     n = params_dict['n']
     probe = params_dict['probe']
@@ -96,21 +110,42 @@ def generateTemplates(
 
 
 def generateRecordings(
-        datafolder=None,
+        config_folder=None,
+        recordings_params_file=None,
+        templates_folder=None,
+        recordings_folder=None,
         verbose=None,
         njobs=None,
-        fname=None):
+        fname=None,
+        fs=None,
+        noise_level=10):
 
-    config = getConfigInfo(datafolder=datafolder)
-    with open(config['recordings_params'], 'r', encoding='utf8') as pf:
+    if config_folder is not None:
+        config = getConfigInfo(datafolder=config_folder)
+
+        if recordings_params_file is None:
+            recordings_params_file = config['recordings_params']
+
+        if templates_folder is None:
+            templates_folder = config['templates_folder']
+
+        if recordings_folder is None:
+            recordings_folder = config['recordings_folder']
+
+    with open(recordings_params_file, 'r', encoding='utf8') as pf:
         if use_loader:
             params_dict = yaml.load(pf, Loader=yaml.FullLoader)
         else:
             params_dict = yaml.load(pf)
-            print(params_dict)
 
-    templates_folder = config['templates_folder']
-    recordings_folder = config['recordings_folder']
+    print(params_dict)
+
+    if noise_level is not None:
+        params_dict["recordings"]["noise_level"] = noise_level
+
+    if fs is not None:
+        params_dict["recordings"]["fs"] = fs
+
     recordings = mr.gen_recordings(
         templates=templates_folder,
         params=params_dict,
@@ -123,16 +158,19 @@ def generateRecordings(
     electrode_name = info['electrodes']['electrode_name']
     duration = info['recordings']['duration']
     noise_level = info['recordings']['noise_level']
+    fs = info['recordings']['fs']
 
     if fname is None:
         if params_dict['recordings']['drifting']:
-            fname = f'recordings_{n_neurons}cells_{electrode_name}'
-            f'_{duration}_{np.round(noise_level, 2)}uV_'
-            f'drift_{time.strftime("%d-%m-%Y_%H-%M")}.h5'
+            fname = f'recordings_{n_neurons}cells_{electrode_name}' \
+                f'_{duration}_{np.round(noise_level, 2)}uV_' \
+                f'_{fs}Hz_' \
+                f'drift_{time.strftime("%d-%m-%Y_%H-%M")}.h5'
         else:
-            fname = f'recordings_{n_neurons}cells_{electrode_name}'
-            f'_{duration}_{np.round(noise_level, 2)}uV_'
-            f'{time.strftime("%d-%m-%Y_%H-%M")}.h5'
+            fname = f'recordings_{n_neurons}cells_{electrode_name}' \
+                f'_{duration}_{np.round(noise_level, 2)}uV_' \
+                f'_{fs}Hz_' \
+                f'{time.strftime("%d-%m-%Y_%H-%M")}.h5'
     n_neurons = info['recordings']['n_neurons']
     electrode_name = info['electrodes']['electrode_name']
     duration = info['recordings']['duration']
@@ -143,11 +181,33 @@ def generateRecordings(
     return recordings
 
 
-def loadRecordings(verbose=None):
+def loadRecordings(datafolder=None, verbose=None, noise_level=None):
 
-    config = getConfigInfo()
-    recordings_folder = config['recordings_folder']
-    recgen = mr.load_recordings(recordings_folder, verbose=verbose)
+    if datafolder is None:
+        config = getConfigInfo(datafolder=datafolder)
+        recordings_folder = config['recordings_folder']
+    else:
+        recordings_folder = datafolder
+
+    if noise_level is not None:
+        recordings = Path(recordings_folder).resolve()
+        pattern = f'_{np.round(noise_level, 2)}uV_'
+
+        recording_files = [f for f in recordings.rglob(f"*{pattern}*") if
+                           f.name.endswith(('.h5', '.hdf5'))]
+        recording_files.sort(reverse=True)
+        if len(recording_files) == 0:
+            raise AttributeError(
+                recordings,
+                ' contains no recordings models with noise_level ',
+                noise_level)
+        else:
+            recordings = recording_files[0]
+            if verbose:
+                print(f'Loading file {recordings}')
+            recgen = mr.load_recordings(recordings, verbose=verbose)
+    else:
+        recgen = mr.load_recordings(recordings_folder, verbose=verbose)
     return recgen
 
 
