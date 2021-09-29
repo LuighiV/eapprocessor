@@ -5,16 +5,23 @@
 import numpy as np
 
 
-def getIndexesOverListOfThresholdMaximum(array, number = 100):
+def getIndexesOverListOfThresholdMaximum(array, number=100, absolute=False):
 
+    if absolute:
+        array = np.absolute(np.array(array))
     step = float(max(array) / number)
     steps = np.array(range(number)) * step
-    return getIndexesOverListOfThreshold(array, steps)
+    indexes, count = getIndexesOverListOfThreshold(array, steps,
+                                                   absolute=absolute)
+    return indexes, count, steps
 
 
-def getIndexesOverListOfThreshold(array, thresholds):
+def getIndexesOverListOfThreshold(array, thresholds, absolute=False):
 
-    arr = np.reshape(np.array(array), (1, len(array)))
+    array = np.array(array)
+    if absolute:
+        array = np.absolute(array)
+    arr = np.reshape(array, (1, len(array)))
     th = np.reshape(np.array(thresholds), (len(thresholds), 1))
     arr_expanded = np.ones(th.shape) @ arr
     th_expanded = th @ np.ones(arr.shape)
@@ -27,9 +34,11 @@ def getIndexesOverListOfThreshold(array, thresholds):
     return indexes, count
 
 
-def getSamplesOverThreshold(threshold, array):
+def getSamplesOverThreshold(threshold, array, absolute=False):
 
     array = np.array(array)
+    if absolute:
+        array = np.absolute(array)
     indexes = np.ones(len(array)) * \
         (isOverThreshold(array, threshold=threshold))
     values = array[np.arange(len(array))[indexes > 0]]

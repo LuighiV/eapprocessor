@@ -8,7 +8,8 @@ import numpy as np
 from eapprocessor.mearecapi.api import loadRecordings
 from eapprocessor.hwsimulator.adc import convertArray, convertLCADC, normalize
 from eapprocessor.preprocessor.neo import applyNEOToArray
-from eapprocessor.detector.threshold import getIndexesOverListOfThreshold, getIndexesOverListOfThresholdMaximum
+from eapprocessor.detector.threshold \
+    import getIndexesOverListOfThresholdMaximum
 
 
 def convertADCRecordings(dataset, voltage_ref, resolution):
@@ -64,10 +65,11 @@ def applyNEOToDataset(dataset, w=1):
     return saveconverted
 
 
-def evaluateThresHoldMaximum(dataset, number=100):
+def evaluateThresHoldMaximum(dataset, number=100, absolute=False):
 
     listidx = []
     counts = []
+    ths = []
     total = len(dataset)
     i = 1
     print("Start processing dataset...")
@@ -80,30 +82,34 @@ def evaluateThresHoldMaximum(dataset, number=100):
 
     # else:
     for array in dataset:
-        indexes, count = getIndexesOverListOfThresholdMaximum(array,
-                                                              number=number)
+        indexes, count, th = getIndexesOverListOfThresholdMaximum(
+            array, number=number, absolute=absolute)
         listidx += [indexes]
         counts += [count]
+        ths += [th]
         print(f"Processed threshold {i}/{total} in dataset")
         i += 1
 
-    return listidx, counts
+    return listidx, counts, ths
 
 
-def evaluateThresHoldMaximumArray(arrDataset, number=100):
+def evaluateThresHoldMaximumArray(arrDataset, number=100, absolute=False):
 
     listidx = []
     counts = []
+    ths = []
     total = len(arrDataset)
     i = 1
     for dataset in arrDataset:
-        indexes, count = evaluateThresHoldMaximum(dataset, number=number)
+        indexes, count, th = evaluateThresHoldMaximum(dataset, number=number,
+                                                      absolute=absolute)
         listidx += [indexes]
         counts += [count]
+        ths += [th]
         print(f"Processed dataset {i}/{total} in array of dataset")
         i += 1
 
-    return listidx, counts
+    return listidx, counts, ths
 
 
 if __name__ == "__main__":
