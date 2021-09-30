@@ -7,7 +7,7 @@ from eapprocessor.tools.save import saveConvertedValues, saveNEOValues, \
 from eapprocessor.integrate import convertADCRecordings, normalizeArrays, \
     applyNEOToDataset, evaluateThresHoldMaximum, \
     evaluateThresHoldMaximumArray
-from eapprocessor.mearec.api import loadRecordings
+from eapprocessor.mearec.api import load_recordings
 from eapprocessor.tools.load import loadConvertedValues, loadNEO, \
     loadCountEvaluation, loadIndexes
 
@@ -27,8 +27,8 @@ def getConvertedADC(recfile=None, voltage_ref=1000, resolution=12,
                     noise_level=None, verbose=True):
 
     recfile = Path(recfile)
-    recgen = loadRecordings(datafolder=recfile, noise_level=noise_level,
-                            verbose=verbose)
+    recgen = load_recordings(datafolder=recfile, noise_level=noise_level,
+                             verbose=verbose)
 
     adc = convertADCRecordings(
         recgen.recordings,

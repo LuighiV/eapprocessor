@@ -5,7 +5,7 @@ import numpy as np
 # from joblib import Parallel, delayed
 # from eapprocessor.multi import NUM_CORES, MULTI_ENABLED
 
-from eapprocessor.mearec.api import loadRecordings
+from eapprocessor.mearec.api import load_recordings
 from eapprocessor.hwsimulator.adc import convertArray, convertLCADC, normalize
 from eapprocessor.preprocessor.neo import applyNEOToArray
 from eapprocessor.detector.threshold \
@@ -115,7 +115,7 @@ def evaluateThresHoldMaximumArray(arrDataset, number=100, absolute=False):
 if __name__ == "__main__":
 
     print("Acquiring latest recordings")
-    recgen = loadRecordings()
+    recgen = load_recordings()
 
     recordings = recgen.recordings[:, :].T
     print("Converting with normal ADC")
