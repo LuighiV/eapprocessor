@@ -34,9 +34,4 @@ setuptools.setup(
         'MEArec',
         'PyYAML'
     ],
-    entry_points={
-        'console_scripts': [
-            'eapprocessor=eapprocessor.__main__',
-        ],
-    },
 )
