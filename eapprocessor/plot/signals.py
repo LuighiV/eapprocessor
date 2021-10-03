@@ -85,29 +85,89 @@ def plotSpikeTrains(ax, spiketrains, level, upperlimit=None, intensities=None,
                     color='red', alpha=intensity)
 
 
-def plotTransientRecordings(recgen, crange=None, channels=None):
+def plotTransientRecordings(recgen,
+                            crange=None,
+                            t_stop=None,
+                            channels=None,
+                            labels=None,
+                            marker=None,
+                            axes=None):
 
     recordings = recgen.recordings[:].T
 
     timestamps = np.array(recgen.timestamps)
 
     noise_level = recgen.info["recordings"]["noise_level"]
+    fs = recgen.info["recordings"]["fs"]
 
     if channels is None:
-        channels = range(len(recordings))
+        channels = np.arange(len(recordings))
 
     if crange is None:
-        crange = range(len(timestamps))
 
-    for channel in channels:
+        if t_stop is not None:
+            crange = timestamps < t_stop
+        else:
+            crange = np.arange(len(timestamps))
 
-        fig = plt.figure(figsize=(12, 6))
-        ax = fig.add_subplot(1, 1, 1)
+    if marker is None:
+        marker = '-'
+
+    for idx, channel in enumerate(channels):
+
+        if axes is None:
+            fig = plt.figure(figsize=(12, 6))
+            ax = fig.add_subplot(1, 1, 1)
+        else:
+            if isinstance(axes, list):
+                ax = axes[idx]
+            else:
+                ax = axes
+
+        if labels is None:
+            label = f"Noise level={noise_level}, fs={fs}"
+        else:
+            if isinstance(labels, list):
+                label = labels[idx]
+            else:
+                label = labels
+
         ax.plot(
             timestamps[crange],
             recordings[channel][crange],
-            label=f"Noise level={noise_level}")
+            marker,
+            label=label)
         ax.set_xlabel("Time (s)")
         ax.set_ylabel("Amplitude (uV)")
         ax.set_title(f"Recordings for channel {channel}")
         ax.legend(loc="best")
+
+
+def plotRecordingsList(recgen_list,
+                       crange=None,
+                       t_stop=None,
+                       channels=None,
+                       group_by_channel=True,
+                       marker=None,
+                       labels=None,
+                       axes=None):
+
+    if axes is None:
+        if group_by_channel:
+            axes = []
+            for _ in channels:
+                fig = plt.figure(figsize=(12, 6))
+                axes += [fig.add_subplot(1, 1, 1)]
+        else:
+            fig = plt.figure(figsize=(12, 6))
+            axes = fig.add_subplot(1, 1, 1)
+
+    for recgen in recgen_list:
+
+        plotTransientRecordings(recgen=recgen,
+                                crange=crange,
+                                t_stop=t_stop,
+                                channels=channels,
+                                labels=labels,
+                                marker=marker,
+                                axes=axes)
