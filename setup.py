@@ -20,7 +20,10 @@ setuptools.setup(
         "License :: OSI Approved :: Apache Software License ",
         "Operating System :: POSIX :: Linux ",
     ],
-    packages=setuptools.find_packages(),
+    packages=setuptools.find_packages(
+        include=['eapprocessor',
+                 'eapprocessor.*']
+    ),
     include_package_data=True,
     python_requires=">=3.6",
     install_requires=[
