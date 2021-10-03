@@ -87,6 +87,7 @@ def plotSpikeTrains(ax, spiketrains, level, upperlimit=None, intensities=None,
 
 def plotTransientRecordings(recgen,
                             crange=None,
+                            t_start=None,
                             t_stop=None,
                             channels=None,
                             labels=None,
@@ -105,10 +106,12 @@ def plotTransientRecordings(recgen,
 
     if crange is None:
 
-        if t_stop is not None:
-            crange = timestamps < t_stop
-        else:
-            crange = np.arange(len(timestamps))
+        if t_stop is None:
+            t_stop = timestamps[-1]
+        if t_start is None:
+            t_start = timestamps[0]
+
+        crange = (timestamps >= t_start) * (timestamps <= t_stop)
 
     if marker is None:
         marker = '-'
@@ -145,6 +148,7 @@ def plotTransientRecordings(recgen,
 
 def plotRecordingsList(recgen_list,
                        crange=None,
+                       t_start=None,
                        t_stop=None,
                        channels=None,
                        group_by_channel=True,
@@ -166,6 +170,7 @@ def plotRecordingsList(recgen_list,
 
         plotTransientRecordings(recgen=recgen,
                                 crange=crange,
+                                t_start=t_start,
                                 t_stop=t_stop,
                                 channels=channels,
                                 labels=labels,
