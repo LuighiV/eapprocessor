@@ -8,7 +8,7 @@
 """
 
 from pathlib import Path
-from typing import Union
+from typing import Union, Dict
 from distutils.version import StrictVersion
 import time
 import yaml
@@ -21,7 +21,7 @@ default_dir = Path(DEFAULT_DATA_INFO)
 use_loader = bool(StrictVersion(yaml.__version__) >= StrictVersion('5.0.0'))
 
 
-def get_config_info(datafolder: Union[str, Path] = None) -> dict[str, str]:
+def get_config_info(datafolder: Union[str, Path] = None) -> Dict[str, str]:
     """Obtaing infor from file in datafolder.
     The file should be named mearec.conf
 
