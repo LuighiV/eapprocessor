@@ -1,41 +1,75 @@
 #!/bin/python3
+from typing import Tuple
 import numpy as np
+import numpy.typing as npt
 
 # from functools import partial
 # from joblib import Parallel, delayed
 # from eapprocessor.multi import NUM_CORES, MULTI_ENABLED
 
 from eapprocessor.mearec.api import load_recordings
-from eapprocessor.hwsimulator.adc import convertArray, convertLCADC, normalize
-from eapprocessor.preprocessor.neo import applyNEOToArray
+from eapprocessor.hwsimulator.adc \
+    import convert_array, convert_lcadc, normalize
+from eapprocessor.preprocessor.neo import apply_neo_to_array
 from eapprocessor.detector.threshold \
     import getIndexesOverListOfThresholdMaximum
 
 
-def convertADCRecordings(dataset, voltage_ref, resolution):
+def convert_adc_recordings(
+        dataset: npt.NDArray[np.float64],
+        voltage_ref: float,
+        resolution: int) -> npt.NDArray[np.float64]:
+    """Convert array of recordings to digital values.
+
+    :param dataset: array of recordings, shape length 2 [channel[recordings]]
+    :type dataset: npt.NDArray[np.float64]
+    :param voltage_ref: reference to convert recordings
+    :type voltage_ref: float
+    :param resolution: resolution for conversion
+    :type resolution: int
+    :return: Array of converted values
+    :rtype: npt.NDArray[np.float64]
+    """
 
     arrays = dataset[:, :].T
 
     converted = [
-        convertArray(array,
-                     voltage_ref=voltage_ref,
-                     resolution=resolution,
-                     bipolar=True) for array in arrays]
+        convert_array(array,
+                      voltage_ref=voltage_ref,
+                      resolution=resolution,
+                      bipolar=True) for array in arrays]
 
     saveconverted = np.array(converted)
     return saveconverted
 
 
-def convertLCADCRecordings(dataset, voltage_ref, resolution):
+def convert_lcadc_recordings(
+        dataset: npt.NDArray[np.float64],
+        voltage_ref: float,
+        resolution: int) -> Tuple[npt.NDArray[np.object_],
+                                  npt.NDArray[np.object_]]:
+    """Convert array of recordings with LCADC technique
+
+    :param dataset: array of recordings converted via LCADC,
+        shape length 2 [channel[recordings]]
+    :type dataset: npt.NDArray[np.float64]
+    :param voltage_ref: reference to convert recordings
+    :type voltage_ref: float
+    :param resolution: resolution for conversion
+    :type resolution: int
+    :return: Array of converted values and indexes
+    :rtype: Tuple[npt.NDArray[np.object_],
+                                      npt.NDArray[np.object_]]
+    """
 
     arrays = dataset[:, :].T
 
     converted = []
     indexes = []
     for array in arrays:
-        index, convert = convertLCADC(array, voltage_ref=voltage_ref,
-                                      resolution=resolution,
-                                      bipolar=True)
+        index, convert = convert_lcadc(array, voltage_ref=voltage_ref,
+                                       resolution=resolution,
+                                       bipolar=True)
         converted += [convert]
         indexes += [index]
 
@@ -46,7 +80,18 @@ def convertLCADCRecordings(dataset, voltage_ref, resolution):
     return saveindexes, saveconverted
 
 
-def normalizeArrays(arrays, resolution):
+def normalize_arrays(arrays: npt.NDArray[np.float64],
+                     resolution: int) -> npt.NDArray[np.float64]:
+    """Normalize array of array of converted values
+
+    :param arrays: Array of array of converted values, dimension length 2
+        [channel[converted]]
+    :type arrays: npt.NDArray[np.float64]
+    :param resolution: resolution with those were converted
+    :type resolution: int
+    :return: array of array of normalized values [channel[normalized]]
+    :rtype: npt.NDArray[np.float64]
+    """
 
     normalized = [
         normalize(
@@ -56,16 +101,16 @@ def normalizeArrays(arrays, resolution):
     return np.array(normalized)
 
 
-def applyNEOToDataset(dataset, w=1):
+def apply_neo_to_dataset(dataset, w=1):
 
     preprocessed = [
-        applyNEOToArray(array, w=w) for array in dataset]
+        apply_neo_to_array(array, w=w) for array in dataset]
 
     saveconverted = np.array(preprocessed)
     return saveconverted
 
 
-def evaluateThresHoldMaximum(dataset, number=100, absolute=False):
+def evaluate_threshold_maximum(dataset, number=100, absolute=False):
 
     listidx = []
     counts = []
@@ -93,7 +138,7 @@ def evaluateThresHoldMaximum(dataset, number=100, absolute=False):
     return listidx, counts, ths
 
 
-def evaluateThresHoldMaximumArray(arrDataset, number=100, absolute=False):
+def evaluate_threshold_maximum_array(arrDataset, number=100, absolute=False):
 
     listidx = []
     counts = []
@@ -101,8 +146,8 @@ def evaluateThresHoldMaximumArray(arrDataset, number=100, absolute=False):
     total = len(arrDataset)
     i = 1
     for dataset in arrDataset:
-        indexes, count, th = evaluateThresHoldMaximum(dataset, number=number,
-                                                      absolute=absolute)
+        indexes, count, th = evaluate_threshold_maximum(dataset, number=number,
+                                                        absolute=absolute)
         listidx += [indexes]
         counts += [count]
         ths += [th]
@@ -117,15 +162,18 @@ if __name__ == "__main__":
     print("Acquiring latest recordings")
     recgen = load_recordings()
 
-    recordings = recgen.recordings[:, :].T
+    recordings = np.array([])
+    if recgen.recordings is not None:
+        recordings = recgen.recordings[:, :].T
+
     print("Converting with normal ADC")
-    adc = convertADCRecordings(
-        recgen.recordings,
+    adc = convert_adc_recordings(
+        recordings,
         voltage_ref=1000,
         resolution=12)
 
     print("Normalizing...")
-    normalized = normalizeArrays(adc, resolution=12)
+    normalized = normalize_arrays(adc, resolution=12)
 
     # print("Converting with LCADC")
     # indexes, lcadc = convertLCADCRecordings(recgen.recordings,
@@ -134,7 +182,7 @@ if __name__ == "__main__":
 
     print("Applying NEO preprocessor")
     w = [1, 2, 4, 8, 16]
-    neoadc = [applyNEOToDataset(normalized, cw) for cw in w]
+    neoadc = [apply_neo_to_dataset(normalized, cw) for cw in w]
 
     time = recgen.timestamps[:]
     spiketrains = recgen.spiketrains

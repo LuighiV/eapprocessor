@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def estimateSampleSpikes(spikes, timestamps, compacted=True):
+def estimate_sample_spikes(spikes, timestamps, compacted=True):
 
     spikes = np.array(spikes).reshape(len(spikes), 1)
     timestamps = np.array(timestamps).reshape(1, len(timestamps))
@@ -38,7 +38,7 @@ def estimateSampleSpikes(spikes, timestamps, compacted=True):
     return indexes, errors
 
 
-def combineSpiketrains(indexes_list, normalize=True):
+def combine_spiketrains(indexes_list, normalize=True):
 
     indexes = np.sum(np.array(indexes_list), axis=0)
 
@@ -50,7 +50,7 @@ def combineSpiketrains(indexes_list, normalize=True):
     return indexes_total
 
 
-def comparisonDetectionSpiketrain(reference, test):
+def comparison_detection_spiketrain(reference, test):
 
     reference = np.array(reference)
     test = np.array(test)
@@ -75,40 +75,40 @@ def comparisonDetectionSpiketrain(reference, test):
     }
 
 
-def getFalseNegatives(reference, test):
+def get_false_negatives(reference, test):
     variations = test - reference
     return np.ones(reference.shape) * (variations == -1)
 
 
-def getFalseNegativesTimes(reference, test, timestamps):
+def get_false_negatives_times(reference, test, timestamps):
 
-    positions = getFalseNegatives(reference=reference, test=test)
+    positions = get_false_negatives(reference=reference, test=test)
     indexes = np.arange(len(positions))[positions > 0]
     return timestamps[indexes]
 
 
-def comparisonDetectionSpiketrainArray(arrayreference, test):
+def comparison_detection_spiketrain_array(arrayreference, test):
 
-    return np.array([comparisonDetectionSpiketrain(reference=reference,
-                                                   test=test)
+    return np.array([comparison_detection_spiketrain(reference=reference,
+                                                     test=test)
                      for reference in arrayreference], dtype=object)
 
 
-def comparisonDetectionArraySpiketrain(reference, arraytest):
+def comparison_detection_array_spiketrain(reference, arraytest):
 
-    return np.array([comparisonDetectionSpiketrain(reference=reference,
-                                                   test=test)
+    return np.array([comparison_detection_spiketrain(reference=reference,
+                                                     test=test)
                      for test in arraytest], dtype=object)
 
 
-def comparisonDetectionArraySpiketrainArray(arrayreference, arraytest):
+def comparison_detection_array_spiketrain_array(arrayreference, arraytest):
 
-    return np.array([comparisonDetectionSpiketrainArray(
+    return np.array([comparison_detection_spiketrain_array(
         arrayreference=arrayreference, test=test) for test in arraytest])
 
 
-def selectComparison(array_comparison,
-                     range_reference=None, range_test=None):
+def select_comparison(array_comparison,
+                      range_reference=None, range_test=None):
 
     if range_test is not None:
         array_comparison = array_comparison[range_test]
@@ -119,13 +119,13 @@ def selectComparison(array_comparison,
     return array_comparison
 
 
-def convertToROC(array_comparison,
-                 range_reference=None,
-                 range_test=None):
+def convert_to_roc(array_comparison,
+                   range_reference=None,
+                   range_test=None):
 
-    array_comparison = selectComparison(array_comparison=array_comparison,
-                                        range_reference=range_reference,
-                                        range_test=range_test)
+    array_comparison = select_comparison(array_comparison=array_comparison,
+                                         range_reference=range_reference,
+                                         range_test=range_test)
 
     tpr_arr = []
     fpr_arr = []
@@ -160,9 +160,9 @@ def convertToROC(array_comparison,
     return np.array(tpr_arr), np.array(fpr_arr)
 
 
-def convertToROCList(array_comparison_list,
-                     range_reference=None,
-                     range_test=None):
+def convert_to_roc_list(array_comparison_list,
+                        range_reference=None,
+                        range_test=None):
 
     tpr_arr_list = []
     fpr_arr_list = []
@@ -170,18 +170,18 @@ def convertToROCList(array_comparison_list,
 
         if len(array_comparison.shape) > 2:
 
-            results = [(convertToROC(comparison,
-                                     range_reference=range_reference,
-                                     range_test=range_test))
+            results = [(convert_to_roc(comparison,
+                                       range_reference=range_reference,
+                                       range_test=range_test))
                        for comparison in array_comparison]
 
             tpr_arr = np.array([result[0] for result in results])
             fpr_arr = np.array([result[1] for result in results])
 
         else:
-            tpr_arr, fpr_arr = convertToROC(array_comparison,
-                                            range_reference=range_reference,
-                                            range_test=range_test)
+            tpr_arr, fpr_arr = convert_to_roc(array_comparison,
+                                              range_reference=range_reference,
+                                              range_test=range_test)
 
         tpr_arr_list += [tpr_arr]
         fpr_arr_list += [fpr_arr]
@@ -194,12 +194,12 @@ if __name__ == "__main__":
     spikes = [2.6, 3.5, 4.5, 6.2]
     timestamps = [0, 1, 2, 3, 4, 5, 6, 7]
 
-    indexes, errors = estimateSampleSpikes(
+    indexes, errors = estimate_sample_spikes(
         spikes=spikes, timestamps=timestamps)
     print(indexes)
     print(errors)
 
     reference = [0, 1, 0, 1, 0, 1, 1, 0]
-    result = comparisonDetectionSpiketrain(reference=reference, test=indexes)
+    result = comparison_detection_spiketrain(reference=reference, test=indexes)
 
     print(result)

@@ -3,7 +3,7 @@ import h5py
 import MEArec as mr
 
 
-def saveConvertedValues(adcgen, filename=None):
+def save_converted_values(adcgen, filename=None):
 
     filename = Path(filename)
     filename.parent.mkdir(parents=True, exist_ok=True)
@@ -24,7 +24,7 @@ def saveConvertedValuesToFile(adcgen, f):
         mr.save_recording_to_file(recgen, f, path="recordings/")
 
 
-def saveNEOValues(neogen, filename=None):
+def save_neo_values(neogen, filename=None):
     filename = Path(filename)
     filename.parent.mkdir(parents=True, exist_ok=True)
 
@@ -51,7 +51,7 @@ def saveArray(array, filename=None, path='array'):
         f.create_dataset(path, data=array)
 
 
-def saveIndexesAndCounts(dic, filename=None, path=''):
+def save_indexes_and_counts(dic, filename=None, path=''):
 
     filename = Path(filename)
     filename.parent.mkdir(parents=True, exist_ok=True)

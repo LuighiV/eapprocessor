@@ -6,30 +6,28 @@ import MEArec as mr
 import numpy as np
 
 
-def findRecordingFiles(folder, resolution=None, noise_level=None,
-                       reverse=True):
+def find_recording_files(
+        folder,
+        resolution=None,
+        noise_level=None,
+        fs=None,
+        reverse=True):
 
-    pattern = ""
-    if resolution is not None:
-        pattern = f'_{int(resolution)}_'
-    if noise_level is not None:
-        pattern = pattern.rstrip("_") + f'_{np.round(noise_level, 2)}uV_'
-    print(pattern)
-
-    if pattern != "":
-        recording_files = [f for f in folder.rglob(f"*{pattern}*") if
-                           f.name.endswith(('.h5', '.hdf5'))]
-    else:
-        recording_files = [f for f in folder.rglob("*") if
-                           f.name.endswith(('.h5', '.hdf5'))]
+    pattern = build_pattern(resolution=resolution,
+                            noise_level=noise_level,
+                            fs=fs)
+    print(f"Search for pattern: {pattern}")
+    recording_files = [f for f in folder.rglob(pattern) if
+                       f.name.endswith(('.h5', '.hdf5'))]
     recording_files.sort(reverse=reverse)
     return recording_files
 
 
-def loadConvertedValues(
+def load_converted_values(
         filename=None,
         resolution=None,
         noise_level=None,
+        fs=None,
         verbose=True,
         check_suffix=True):
 
@@ -37,8 +35,10 @@ def loadConvertedValues(
     adc_dict = {}
     if filename.is_dir():
 
-        recording_files = findRecordingFiles(filename, resolution=resolution,
-                                             noise_level=noise_level)
+        recording_files = find_recording_files(filename,
+                                               resolution=resolution,
+                                               noise_level=noise_level,
+                                               fs=fs)
         if len(recording_files) == 0:
             raise AttributeError(filename, ' contains no adc values!')
 
@@ -49,7 +49,7 @@ def loadConvertedValues(
     if (filename.suffix in ['.h5', '.hdf5']) or (not check_suffix):
         f = h5py.File(str(filename), 'r')
 
-        adc_dict = loadConvertedValuesFromFile(f)
+        adc_dict = load_converted_values_from_file(f)
 
     else:
         raise Exception("Converted values must be an hdf5 file (.h5 or .hdf5)")
@@ -57,7 +57,7 @@ def loadConvertedValues(
     return adc_dict
 
 
-def loadConvertedValuesFromFile(f, path=''):
+def load_converted_values_from_file(f, path=''):
 
     adc_dict = {}
 
@@ -76,17 +76,21 @@ def loadConvertedValuesFromFile(f, path=''):
     return adc_dict
 
 
-def loadNEO(filename=None,
-            resolution=None,
-            noise_level=None,
-            verbose=True, check_suffix=True):
+def load_neo(filename=None,
+             resolution=None,
+             noise_level=None,
+             fs=None,
+             verbose=True,
+             check_suffix=True):
 
     filename = Path(filename).resolve()
     neo_dict = {}
     if filename.is_dir():
 
-        recording_files = findRecordingFiles(filename, resolution=resolution,
-                                             noise_level=noise_level)
+        recording_files = find_recording_files(filename,
+                                               resolution=resolution,
+                                               fs=fs,
+                                               noise_level=noise_level)
         if len(recording_files) == 0:
             raise AttributeError(filename, ' contains no neo values!')
 
@@ -95,9 +99,9 @@ def loadNEO(filename=None,
             print(f'Loading file {filename}')
 
     if (filename.suffix in ['.h5', '.hdf5']) or (not check_suffix):
-        f = h5py.File(str(filename), 'r')
+        file = h5py.File(str(filename), 'r')
 
-        neo_dict = loadNEOFromFile(f)
+        neo_dict = load_neo_from_file(file)
 
     else:
         raise Exception("NEO values must be an hdf5 file (.h5 or .hdf5)")
@@ -105,9 +109,9 @@ def loadNEO(filename=None,
     return neo_dict, filename
 
 
-def loadNEOFromFile(f, path=''):
+def load_neo_from_file(f, path=''):
 
-    neo_dict = loadConvertedValuesFromFile(f, path=path)
+    neo_dict = load_converted_values_from_file(f, path=path)
 
     if f.get(path + 'w') is not None:
         neo_dict["w"] = f.get(path + 'w')
@@ -118,7 +122,10 @@ def loadNEOFromFile(f, path=''):
     return neo_dict
 
 
-def buildPattern(resolution=None, noise_level=None, nthresholds=None):
+def build_pattern(resolution=None,
+                  noise_level=None,
+                  fs=None,
+                  nthresholds=None):
 
     pattern = ""
 
@@ -132,7 +139,13 @@ def buildPattern(resolution=None, noise_level=None, nthresholds=None):
             pattern += "*"
 
     if noise_level is not None:
-        pattern = f'_{np.round(noise_level, 2)}uV'
+        pattern += f'_{np.round(noise_level, 2)}uV'
+    else:
+        if pattern != "":
+            pattern = pattern.rstrip("*") + "*"
+
+    if fs is not None:
+        pattern += f'_{int(fs)}Hz'
 
     if pattern != "":
         pattern = pattern.rstrip("*")
@@ -141,15 +154,21 @@ def buildPattern(resolution=None, noise_level=None, nthresholds=None):
         return "*"
 
 
-def findRelatedFiles(folder, sourcefile, verbose=True, resolution=None,
-                     noise_level=None, nthresholds=None):
+def find_related_files(folder,
+                       sourcefile,
+                       verbose=True,
+                       resolution=None,
+                       noise_level=None,
+                       fs=None,
+                       nthresholds=None):
 
     folder = Path(folder).resolve()
     if folder.is_dir():
-        pattern = buildPattern(resolution=resolution,
-                               noise_level=noise_level,
-                               nthresholds=nthresholds)
-        print(pattern)
+        pattern = build_pattern(resolution=resolution,
+                                noise_level=noise_level,
+                                fs=fs,
+                                nthresholds=nthresholds)
+        print(f"Search for pattern: {pattern}")
         recording_files = [f for f in folder.rglob(pattern) if
                            f.name.endswith(('.h5', '.hdf5'))]
         recording_files.sort(reverse=True)
@@ -158,9 +177,9 @@ def findRelatedFiles(folder, sourcefile, verbose=True, resolution=None,
 
         related_recordings = []
         for recording in recording_files:
-            f = h5py.File(str(recording), 'r')
-            if f.get("source_file") is not None:
-                filename = f["source_file"].astype("|O")
+            file = h5py.File(str(recording), 'r')
+            if file.get("source_file") is not None:
+                filename = file["source_file"].astype("|O")
                 filename = filename[()].decode()
                 # print(filename)
 
@@ -174,7 +193,7 @@ def findRelatedFiles(folder, sourcefile, verbose=True, resolution=None,
         raise AttributeError(folder, ' is not a folder!')
 
 
-def getFile(folder, starts, verbose=True):
+def get_file(folder, starts, verbose=True):
 
     folder = Path(folder).resolve()
     filename = None
@@ -191,15 +210,15 @@ def getFile(folder, starts, verbose=True):
     return filename
 
 
-def getEvaluationFiles(folder, sourcefile=None, verbose=True):
+def get_evaluation_files(folder, sourcefile=None, verbose=True):
 
     if sourcefile is None:
-        record = getFile(folder, 'threshold_recordings', verbose=verbose)
-        normal = getFile(folder, 'threshold_normalized', verbose=verbose)
-        neo = getFile(folder, 'threshold_neo', verbose=verbose)
+        record = get_file(folder, 'threshold_recordings', verbose=verbose)
+        normal = get_file(folder, 'threshold_normalized', verbose=verbose)
+        neo = get_file(folder, 'threshold_neo', verbose=verbose)
     else:
-        related_files = findRelatedFiles(folder=folder,
-                                         sourcefile=sourcefile)
+        related_files = find_related_files(folder=folder,
+                                           sourcefile=sourcefile)
         record = [f for f in related_files if
                   f.name.startswith("threshold_recordings")][0]
 
@@ -218,18 +237,18 @@ def getEvaluationFiles(folder, sourcefile=None, verbose=True):
     return files_dict
 
 
-def loadCountEvaluation(folder=None,
-                        sourcefile=None,
-                        recordings_file=None,
-                        normalized_file=None,
-                        neo_file=None,
-                        include_channels=True,
-                        verbose=True):
+def load_count_evaluation(folder=None,
+                          sourcefile=None,
+                          recordings_file=None,
+                          normalized_file=None,
+                          neo_file=None,
+                          include_channels=True,
+                          verbose=True):
 
     if folder is not None:
-        files_dict = getEvaluationFiles(folder,
-                                        sourcefile=sourcefile,
-                                        verbose=verbose)
+        files_dict = get_evaluation_files(folder,
+                                          sourcefile=sourcefile,
+                                          verbose=verbose)
         if recordings_file is None:
             recordings_file = files_dict["recordings_file"]
 
@@ -242,34 +261,34 @@ def loadCountEvaluation(folder=None,
     count_dict = {}
 
     if include_channels:
-        count_dict["channels"] = loadChannels(recordings_file)
-    count_dict["recordings"] = loadCount(recordings_file)
-    count_dict["normalized"] = loadCount(normalized_file)
-    count_dict["neo"] = loadCount(neo_file)
+        count_dict["channels"] = load_channels(recordings_file)
+    count_dict["recordings"] = load_count(recordings_file)
+    count_dict["normalized"] = load_count(normalized_file)
+    count_dict["neo"] = load_count(neo_file)
 
     return count_dict
 
 
-def loadEvaluation(filename):
+def load_evaluation(filename):
 
     f = h5py.File(str(filename), 'r')
 
-    return loadEvaluationFromFile(f, path="/")
+    return load_evaluation_from_file(f, path="/")
 
 
-def loadEvaluationFromFile(f, path=''):
+def load_evaluation_from_file(f, path=''):
 
     return mr.load_dict_from_hdf5(f, path=path)
 
 
-def loadParameter(filename, parameter, path=""):
+def load_parameter(filename, parameter, path=""):
 
     f = h5py.File(str(filename), 'r')
 
-    return loadParameterFromFile(f, parameter=parameter, path=path)
+    return load_parameter_from_file(f, parameter=parameter, path=path)
 
 
-def loadParameterFromFile(f, parameter, path=""):
+def load_parameter_from_file(f, parameter, path=""):
 
     values = None
     if f.get(path + parameter) is not None:
@@ -278,21 +297,22 @@ def loadParameterFromFile(f, parameter, path=""):
     return values
 
 
-def loadCount(filename, path=''):
+def load_count(filename, path=''):
 
-    return loadParameter(filename=filename,
-                         parameter="counts",
-                         path=path)
+    return load_parameter(filename=filename,
+                          parameter="counts",
+                          path=path)
 
 
-def loadChannels(filename, path=''):
+def load_channels(filename, path=''):
 
-    return loadParameter(filename=filename,
-                         parameter="channels",
-                         path=path)
+    return load_parameter(filename=filename,
+                          parameter="channels",
+                          path=path)
 
-def loadIndexes(filename, path=''):
 
-    return loadParameter(filename=filename,
-                         parameter="indexes",
-                         path=path)
+def load_indexes(filename, path=''):
+
+    return load_parameter(filename=filename,
+                          parameter="indexes",
+                          path=path)

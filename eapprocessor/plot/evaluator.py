@@ -3,7 +3,7 @@ import matplotlib.pylab as plt
 import numpy as np
 
 
-def plotCountsEvaluator(counts, neogen, channels_idx=None):
+def plot_counts_evaluator(counts, neogen, channels_idx=None):
 
     if "channels" in counts.keys():
         channels = np.array(counts["channels"])
@@ -31,7 +31,7 @@ def plotCountsEvaluator(counts, neogen, channels_idx=None):
         ax.legend()
 
 
-def plotAccuracyEvaluator(truepositive, falsenegative):
+def plot_accuracy_evaluator(truepositive, falsenegative):
 
     y_offset = np.zeros(len(truepositive))
     fig = plt.figure(figsize=(8, 6))
@@ -50,7 +50,7 @@ def plotAccuracyEvaluator(truepositive, falsenegative):
     ax.legend(loc="best")
 
 
-def plotROC(fpr, tpr, label, ax=None):
+def plot_roc(fpr, tpr, label, ax=None):
 
     if ax is None:
         fig = plt.figure()
@@ -59,9 +59,9 @@ def plotROC(fpr, tpr, label, ax=None):
     ax.plot(fpr, tpr, '.--', label=label)
 
 
-def plotROCList(fpr_list, tpr_list, labels,
-                spiketrains_labels=None,
-                append_title=None):
+def plot_roc_list(fpr_list, tpr_list, labels,
+                  spiketrains_labels=None,
+                  append_title=None):
 
     if append_title is None:
         append_title = ""
@@ -74,10 +74,10 @@ def plotROCList(fpr_list, tpr_list, labels,
             ax = fig.add_subplot(1, 1, 1)
             for idx_fpr in range(len(fpr_list)):
 
-                plotROC(fpr_list[idx_fpr][:, idx],
-                        tpr_list[idx_fpr][:, idx],
-                        label=labels[idx_fpr],
-                        ax=ax)
+                plot_roc(fpr_list[idx_fpr][:, idx],
+                         tpr_list[idx_fpr][:, idx],
+                         label=labels[idx_fpr],
+                         ax=ax)
             ax.legend(loc="best")
             ax.set_xlabel("FPR(1-specificity)")
             ax.set_ylabel("TPR(sensitivity)")
@@ -89,10 +89,10 @@ def plotROCList(fpr_list, tpr_list, labels,
         ax = fig.add_subplot(1, 1, 1)
         for idx_fpr in range(len(fpr_list)):
 
-            plotROC(fpr_list[idx_fpr][:],
-                    tpr_list[idx_fpr][:],
-                    label=labels[idx_fpr],
-                    ax=ax)
+            plot_roc(fpr_list[idx_fpr][:],
+                     tpr_list[idx_fpr][:],
+                     label=labels[idx_fpr],
+                     ax=ax)
         ax.legend(loc="best")
         ax.set_xlabel("FPR(1-specificity)")
         ax.set_ylabel("TPR(sensitivity)")

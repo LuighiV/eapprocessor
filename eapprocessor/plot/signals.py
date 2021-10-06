@@ -2,9 +2,9 @@ import matplotlib.pylab as plt
 import numpy as np
 
 
-def plotSignals(neogen, crange=None, channels=None,
-                plot_spiketrains=True, intensities=None,
-                range_spikes=None):
+def plot_signals(neogen, crange=None, channels=None,
+                 plot_spiketrains=True, intensities=None,
+                 range_spikes=None):
 
     recordings = neogen["recordings"].recordings[:].T
     spiketrains = neogen["recordings"].spiketrains
@@ -28,11 +28,11 @@ def plotSignals(neogen, crange=None, channels=None,
             recordings[channel][crange],
             label="Recordings")
         if plot_spiketrains:
-            plotSpikeTrains(ax=ax, spiketrains=spiketrains,
-                            level=np.max(recordings[channel][crange]),
-                            upperlimit=timestamps[crange][-1],
-                            intensities=intensities,
-                            range_spikes=range_spikes)
+            plot_spiketrains(ax=ax, spiketrains=spiketrains,
+                             level=np.max(recordings[channel][crange]),
+                             upperlimit=timestamps[crange][-1],
+                             intensities=intensities,
+                             range_spikes=range_spikes)
         ax.legend(loc='best')
 
         ax = fig.add_subplot(3, 1, 2)
@@ -44,11 +44,11 @@ def plotSignals(neogen, crange=None, channels=None,
         ax.legend(loc='best')
 
         if plot_spiketrains:
-            plotSpikeTrains(ax=ax, spiketrains=spiketrains,
-                            level=np.max(normalized[channel][crange]),
-                            upperlimit=timestamps[crange][-1],
-                            intensities=intensities,
-                            range_spikes=range_spikes)
+            plot_spiketrains(ax=ax, spiketrains=spiketrains,
+                             level=np.max(normalized[channel][crange]),
+                             upperlimit=timestamps[crange][-1],
+                             intensities=intensities,
+                             range_spikes=range_spikes)
 
         ax = fig.add_subplot(3, 1, 3)
         for idx in range(len(neo)):
@@ -56,16 +56,20 @@ def plotSignals(neogen, crange=None, channels=None,
                     label=f"w={w[idx]}")
 
         if plot_spiketrains:
-            plotSpikeTrains(ax=ax, spiketrains=spiketrains,
-                            level=np.max(neo[-1][channel][crange]),
-                            upperlimit=timestamps[crange][-1],
-                            intensities=intensities,
-                            range_spikes=range_spikes)
+            plot_spiketrains(ax=ax, spiketrains=spiketrains,
+                             level=np.max(neo[-1][channel][crange]),
+                             upperlimit=timestamps[crange][-1],
+                             intensities=intensities,
+                             range_spikes=range_spikes)
         ax.legend(loc='best')
 
 
-def plotSpikeTrains(ax, spiketrains, level, upperlimit=None, intensities=None,
-                    range_spikes=None):
+def plot_spiketrains(ax,
+                     spiketrains,
+                     level,
+                     upperlimit=None,
+                     intensities=None,
+                     range_spikes=None):
 
     spiketrains = np.array(spiketrains, dtype=object)
     if range_spikes is not None:
@@ -85,14 +89,14 @@ def plotSpikeTrains(ax, spiketrains, level, upperlimit=None, intensities=None,
                     color='red', alpha=intensity)
 
 
-def plotTransientRecordings(recgen,
-                            crange=None,
-                            t_start=None,
-                            t_stop=None,
-                            channels=None,
-                            labels=None,
-                            marker=None,
-                            axes=None):
+def plot_transient_recordings(recgen,
+                              crange=None,
+                              t_start=None,
+                              t_stop=None,
+                              channels=None,
+                              labels=None,
+                              marker=None,
+                              axes=None):
 
     recordings = recgen.recordings[:].T
 
@@ -146,15 +150,15 @@ def plotTransientRecordings(recgen,
         ax.legend(loc="best")
 
 
-def plotRecordingsList(recgen_list,
-                       crange=None,
-                       t_start=None,
-                       t_stop=None,
-                       channels=None,
-                       group_by_channel=True,
-                       marker=None,
-                       labels=None,
-                       axes=None):
+def plot_recordings_list(recgen_list,
+                         crange=None,
+                         t_start=None,
+                         t_stop=None,
+                         channels=None,
+                         group_by_channel=True,
+                         marker=None,
+                         labels=None,
+                         axes=None):
 
     if axes is None:
         if group_by_channel:
@@ -168,11 +172,11 @@ def plotRecordingsList(recgen_list,
 
     for recgen in recgen_list:
 
-        plotTransientRecordings(recgen=recgen,
-                                crange=crange,
-                                t_start=t_start,
-                                t_stop=t_stop,
-                                channels=channels,
-                                labels=labels,
-                                marker=marker,
-                                axes=axes)
+        plot_transient_recordings(recgen=recgen,
+                                  crange=crange,
+                                  t_start=t_start,
+                                  t_stop=t_stop,
+                                  channels=channels,
+                                  labels=labels,
+                                  marker=marker,
+                                  axes=axes)

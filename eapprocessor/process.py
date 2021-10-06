@@ -2,17 +2,17 @@
 import time
 from pathlib import Path
 import numpy as np
-from eapprocessor.tools.save import saveConvertedValues, saveNEOValues, \
-    saveIndexesAndCounts
-from eapprocessor.integrate import convertADCRecordings, normalizeArrays, \
-    applyNEOToDataset, evaluateThresHoldMaximum, \
-    evaluateThresHoldMaximumArray
+from eapprocessor.tools.save import save_converted_values, save_neo_values, \
+    save_indexes_and_counts
+from eapprocessor.integrate import convert_adc_recordings, normalize_arrays, \
+    apply_neo_to_dataset, evaluate_threshold_maximum, \
+    evaluate_threshold_maximum_array
 from eapprocessor.mearec.api import load_recordings
-from eapprocessor.tools.load import loadConvertedValues, loadNEO, \
-    loadCountEvaluation, loadIndexes
+from eapprocessor.tools.load import load_converted_values, load_neo, \
+    load_count_evaluation, load_indexes
 
 from eapprocessor.evaluator.spikes import \
-    comparisonDetectionArraySpiketrainArray
+    comparison_detection_array_spiketrain_array
 
 
 DEFAULT_OUTPUT = "./output"
@@ -23,19 +23,21 @@ FOLDER_PREPROCESSOR = "preprocessor"
 FOLDER_EVALUATOR = "evaluator"
 
 
-def getConvertedADC(recfile=None, voltage_ref=1000, resolution=12,
-                    noise_level=None, verbose=True):
+def get_converted_adc(recfile=None, voltage_ref=1000, resolution=12,
+                      noise_level=None, fs=None, verbose=True):
 
     recfile = Path(recfile)
-    recgen = load_recordings(datafolder=recfile, noise_level=noise_level,
+    recgen = load_recordings(datafolder=recfile,
+                             noise_level=noise_level,
+                             fs=fs,
                              verbose=verbose)
 
-    adc = convertADCRecordings(
+    adc = convert_adc_recordings(
         recgen.recordings,
         voltage_ref=voltage_ref,
         resolution=resolution)
 
-    normalized = normalizeArrays(adc, resolution=resolution)
+    normalized = normalize_arrays(adc, resolution=resolution)
     adcgen = {}
     adcgen["adc"] = adc
     adcgen["normalized"] = normalized
@@ -46,6 +48,7 @@ def getConvertedADC(recfile=None, voltage_ref=1000, resolution=12,
     adcgen["recordings"] = recgen
 
     noise_level = recgen.info["recordings"]["noise_level"]
+    fs = recgen.info["recordings"]["fs"]
 
     if recfile is not None:
         parent_dir = recfile.parent
@@ -55,26 +58,31 @@ def getConvertedADC(recfile=None, voltage_ref=1000, resolution=12,
     filename = str(
         parent_dir /
         FOLDER_ADC /
-        f'samples_{resolution}_{np.round(noise_level, 2)}uV_.h5')
-    saveConvertedValues(adcgen, filename)
+        f'samples_{resolution}_{np.round(noise_level, 2)}uV_'
+        f'{int(fs)}Hz.h5')
+    save_converted_values(adcgen, filename)
 
     return adcgen
 
 
-def getNEO(
+def get_neo(
         adcfile=None,
         w=[1],
         resolution=None,
         noise_level=None,
+        fs=None,
         verbose=None):
 
-    adcgen = loadConvertedValues(adcfile, resolution=resolution,
-                                 noise_level=noise_level, verbose=verbose)
+    adcgen = load_converted_values(adcfile,
+                                   resolution=resolution,
+                                   noise_level=noise_level,
+                                   fs=fs,
+                                   verbose=verbose)
 
     neogen = adcgen
     neogen["w"] = w
     neogen["neo"] = [
-        applyNEOToDataset(
+        apply_neo_to_dataset(
             np.array(
                 adcgen["normalized"]),
             cw) for cw in w]
@@ -92,24 +100,30 @@ def getNEO(
         parent_dir /
         FOLDER_PREPROCESSOR /
         f'preprocessed_neo_{resolution}_'
-        f'{np.round(noise_level, 2)}uV_{time.strftime("%Y-%m-%d_%H-%M")}.h5')
+        f'{np.round(noise_level, 2)}uV_'
+        f'{int(fs)}Hz_'
+        f'{time.strftime("%Y-%m-%d_%H-%M")}.h5')
 
-    saveNEOValues(neogen, filename)
+    save_neo_values(neogen, filename)
     return neogen
 
 
-def getOverThreshold(neofile,
-                     resolution=None,
-                     noise_level=None,
-                     ch_indexes=None,
-                     nthresholds=10,
-                     verbose=None,
-                     absolute_recordings=True,
-                     absolute_adc=True,
-                     absolute_neo=False):
+def get_over_threshold(neofile,
+                       resolution=None,
+                       noise_level=None,
+                       fs=None,
+                       ch_indexes=None,
+                       nthresholds=10,
+                       verbose=None,
+                       absolute_recordings=True,
+                       absolute_adc=True,
+                       absolute_neo=False):
 
-    neogen, fneo = loadNEO(neofile, resolution=resolution,
-                           noise_level=noise_level, verbose=verbose)
+    neogen, fneo = load_neo(neofile,
+                            resolution=resolution,
+                            noise_level=noise_level,
+                            fs=fs,
+                            verbose=verbose)
 
     recordings = np.array(neogen["recordings"].recordings[:, :].T)
     normalized = neogen["normalized"]
@@ -125,7 +139,7 @@ def getOverThreshold(neofile,
     neogen["thresholds"] = nthresholds
 
     print("Processing recordings")
-    listidx, counts, ths = evaluateThresHoldMaximum(
+    listidx, counts, ths = evaluate_threshold_maximum(
         recordings, nthresholds, absolute=absolute_recordings)
     threcordings = {"source_file": str(fneo),
                     "channels": ch_indexes,
@@ -136,6 +150,7 @@ def getOverThreshold(neofile,
 
     resolution = neogen["adcinfo"]["resolution"]
     noise_level = neogen["recordings"].info["recordings"]["noise_level"]
+    fs = neogen["recordings"].info["recordings"]["fs"]
 
     if neofile is not None:
         neofile = Path(neofile).resolve()
@@ -143,7 +158,10 @@ def getOverThreshold(neofile,
     else:
         parent_dir = default_dir
 
-    fileid = f'{nthresholds}th_{resolution}_{np.round(noise_level, 2)}uV'
+    fileid = f'{nthresholds}th_{resolution}_'\
+        f'{np.round(noise_level, 2)}uV_' \
+        f'{int(fs)}Hz'
+
     if ch_indexes is not None:
         fileid = 'subset_' + fileid
 
@@ -152,12 +170,12 @@ def getOverThreshold(neofile,
         FOLDER_EVALUATOR /
         f'threshold_recordings_{fileid}_{time.strftime("%Y-%m-%d_%H-%M")}.h5')
 
-    saveIndexesAndCounts(threcordings, filename_rec)
+    save_indexes_and_counts(threcordings, filename_rec)
     del threcordings
 
     print("Processing normalized")
-    listidx, counts, ths = evaluateThresHoldMaximum(normalized, nthresholds,
-                                                    absolute=absolute_adc)
+    listidx, counts, ths = evaluate_threshold_maximum(normalized, nthresholds,
+                                                      absolute=absolute_adc)
     thnorm = {"source_file": str(fneo),
               "channels": ch_indexes,
               "indexes": listidx,
@@ -170,12 +188,12 @@ def getOverThreshold(neofile,
         FOLDER_EVALUATOR /
         f'threshold_normalized_{fileid}_{time.strftime("%Y-%m-%d_%H-%M")}.h5')
 
-    saveIndexesAndCounts(thnorm, filename_norm)
+    save_indexes_and_counts(thnorm, filename_norm)
     del thnorm
 
     print("Processing neo array")
-    listidx, counts, ths = evaluateThresHoldMaximumArray(neo, nthresholds,
-                                                         absolute=absolute_neo)
+    listidx, counts, ths = evaluate_threshold_maximum_array(
+        neo, nthresholds, absolute=absolute_neo)
     thneo = {"source_file": str(fneo),
              "channels": ch_indexes,
              "indexes": listidx,
@@ -188,34 +206,34 @@ def getOverThreshold(neofile,
         FOLDER_EVALUATOR /
         f'threshold_neo_{fileid}_{time.strftime("%Y-%m-%d_%H-%M")}.h5')
 
-    saveIndexesAndCounts(thneo, filename_neo)
+    save_indexes_and_counts(thneo, filename_neo)
 
     return neogen
 
 
-def getResultsEvaluationDatasetArray(dataset_files,
-                                     indexes_list,
-                                     channel_idx=0):
+def get_results_evaluation_dataset_array(dataset_files,
+                                         indexes_list,
+                                         channel_idx=0):
 
     results_list = []
     for dataset_file in dataset_files:
 
-        evaluation_indexes = np.array(loadIndexes(dataset_file))
+        evaluation_indexes = np.array(load_indexes(dataset_file))
 
         if len(evaluation_indexes.shape) == 4:
             results = [
-                comparisonDetectionArraySpiketrainArray(
+                comparison_detection_array_spiketrain_array(
                     indexes_list,
                     evaluation[channel_idx])
                 for evaluation in evaluation_indexes]
 
         elif len(evaluation_indexes.shape) == 3:
-            results = comparisonDetectionArraySpiketrainArray(
+            results = comparison_detection_array_spiketrain_array(
                 indexes_list,
                 evaluation_indexes[channel_idx])
 
         else:
-            results = comparisonDetectionArraySpiketrainArray(
+            results = comparison_detection_array_spiketrain_array(
                 indexes_list,
                 evaluation_indexes)
 
@@ -235,7 +253,7 @@ if __name__ == "__main__":
     # neogen = getNEO(folder, w=[1, 2, 4, 16])
 
     neofolder = default_dir / FOLDER_PREPROCESSOR
-    neogen, fneo = loadNEO(neofolder)
+    neogen, fneo = load_neo(neofolder)
     print(neogen)
 
     # thgen = getOverThreshold(neofolder)
@@ -243,7 +261,7 @@ if __name__ == "__main__":
 
     evalfolder = default_dir / FOLDER_EVALUATOR
 
-    counts, files = loadCountEvaluation(evalfolder)
+    counts, files = load_count_evaluation(evalfolder)
     print(counts)
 
     import matplotlib.pylab as plt
