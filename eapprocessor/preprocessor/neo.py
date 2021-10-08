@@ -3,6 +3,7 @@ import numpy as np
 
 
 def apply_neo_to_array(values, w=1):
+    print("Apply to recording with w=", w)
     newarray = np.array(values)
     for idx in range(len(values))[w:-w]:
         newarray[idx] = values[idx]**2 - values[idx + w] * values[idx - w]

@@ -1,5 +1,5 @@
 #!/bin/python3
-from typing import Tuple
+from typing import Tuple, Union
 import numpy as np
 import numpy.typing as npt
 
@@ -80,7 +80,8 @@ def convert_lcadc_recordings(
     return saveindexes, saveconverted
 
 
-def normalize_arrays(arrays: npt.NDArray[np.float64],
+def normalize_arrays(arrays: Union[npt.NDArray[np.float64],
+                                   npt.NDArray[np.object_]],
                      resolution: int) -> npt.NDArray[np.float64]:
     """Normalize array of array of converted values
 
@@ -103,6 +104,7 @@ def normalize_arrays(arrays: npt.NDArray[np.float64],
 
 def apply_neo_to_dataset(dataset, w=1):
 
+    print("Applying neo to dataset with w=", w)
     preprocessed = [
         apply_neo_to_array(array, w=w) for array in dataset]
 

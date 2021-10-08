@@ -1,18 +1,18 @@
 import numpy as np
 
 
-def calcDistancesFromRecordings(recgen):
+def calc_distances_from_recordings(recgen):
 
     neurons_positions = recgen.template_locations
     electrodes_positions = recgen.channel_positions
 
-    return calcDistances(
+    return calc_distances(
         electrodes_positions=electrodes_positions,
         neurons_positions=neurons_positions,
     )
 
 
-def calcDistances(electrodes_positions, neurons_positions):
+def calc_distances(electrodes_positions, neurons_positions):
 
     neurons_positions = np.array(neurons_positions)
     electrodes_positions = np.array(electrodes_positions)
@@ -29,12 +29,12 @@ def calcDistances(electrodes_positions, neurons_positions):
     return np.array(distances).T
 
 
-def getOrderByChannels(distances):
+def get_order_by_channels(distances):
 
     return np.argsort(distances, axis=1)
 
 
-def convertDistancesToIntensity(distances, max_value=1, min_value=0.1):
+def convert_distances_to_intensity(distances, max_value=1, min_value=0.1):
 
     approxIntensity = distances**(-2)
 
@@ -56,11 +56,11 @@ if __name__ == "__main__":
     print(neuron.shape)
     print(electrodes.shape)
 
-    distances = calcDistances(electrodes, neuron)
+    distances = calc_distances(electrodes, neuron)
     print(distances)
 
-    orders = getOrderByChannels(distances)
+    orders = get_order_by_channels(distances)
     print(orders)
 
-    amplitude = convertDistancesToIntensity(distances)
+    amplitude = convert_distances_to_intensity(distances)
     print(amplitude)

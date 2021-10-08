@@ -3,7 +3,7 @@ import numpy as np
 
 
 def plot_signals(neogen, crange=None, channels=None,
-                 plot_spiketrains=True, intensities=None,
+                 include_spiketrains=True, intensities=None,
                  range_spikes=None):
 
     recordings = neogen["recordings"].recordings[:].T
@@ -27,7 +27,7 @@ def plot_signals(neogen, crange=None, channels=None,
             timestamps[crange],
             recordings[channel][crange],
             label="Recordings")
-        if plot_spiketrains:
+        if include_spiketrains:
             plot_spiketrains(ax=ax, spiketrains=spiketrains,
                              level=np.max(recordings[channel][crange]),
                              upperlimit=timestamps[crange][-1],
@@ -43,7 +43,7 @@ def plot_signals(neogen, crange=None, channels=None,
 
         ax.legend(loc='best')
 
-        if plot_spiketrains:
+        if include_spiketrains:
             plot_spiketrains(ax=ax, spiketrains=spiketrains,
                              level=np.max(normalized[channel][crange]),
                              upperlimit=timestamps[crange][-1],
@@ -55,7 +55,7 @@ def plot_signals(neogen, crange=None, channels=None,
             ax.plot(timestamps[crange], neo[idx][channel][crange],
                     label=f"w={w[idx]}")
 
-        if plot_spiketrains:
+        if include_spiketrains:
             plot_spiketrains(ax=ax, spiketrains=spiketrains,
                              level=np.max(neo[-1][channel][crange]),
                              upperlimit=timestamps[crange][-1],

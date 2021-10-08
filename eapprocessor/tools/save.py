@@ -3,44 +3,70 @@ import h5py
 import MEArec as mr
 
 
-def save_converted_values(adcgen, filename=None):
+def save_converted_values(adcgen, filename=None, is_lcadc=False):
 
     filename = Path(filename)
     filename.parent.mkdir(parents=True, exist_ok=True)
 
     with h5py.File(filename, 'w') as f:
-        saveConvertedValuesToFile(adcgen, f)
+        saveConvertedValuesToFile(adcgen, f, is_lcadc=is_lcadc)
 
 
-def saveConvertedValuesToFile(adcgen, f):
+def saveConvertedValuesToFile(adcgen, f, is_lcadc=False):
 
     mr.save_dict_to_hdf5(adcgen["adcinfo"], f, 'adcinfo/')
-    if len(adcgen["adc"]) > 0:
-        f.create_dataset('adc', data=adcgen["adc"])
-    if len(adcgen["normalized"]) > 0:
-        f.create_dataset('normalized', data=adcgen["normalized"])
+    if is_lcadc:
+        idx_array = []
+        for idx, adc in enumerate(adcgen["lcadc"]):
+            if len(adc) > 0:
+                f.create_dataset('lcadc/' + str(idx),
+                                 data=adc)
+            if len(adcgen["indexes"][idx]) > 0:
+                f.create_dataset('indexes/' + str(idx),
+                                 data=adcgen["indexes"][idx])
+            if len(adcgen["normalized"][idx]) > 0:
+                f.create_dataset('normalized/' + str(idx),
+                                 data=adcgen["normalized"][idx])
+            idx_array += [idx]
+
+        if len(idx_array) > 0:
+            f.create_dataset("channels", data=idx_array)
+
+    else:
+        if len(adcgen["adc"]) > 0:
+            f.create_dataset('adc', data=adcgen["adc"])
+        if len(adcgen["normalized"]) > 0:
+            f.create_dataset('normalized', data=adcgen["normalized"])
+
     if adcgen["recordings"]:
         recgen = adcgen["recordings"]
         mr.save_recording_to_file(recgen, f, path="recordings/")
 
 
-def save_neo_values(neogen, filename=None):
+def save_neo_values(neogen, filename=None, is_lcadc=False):
     filename = Path(filename)
     filename.parent.mkdir(parents=True, exist_ok=True)
 
     with h5py.File(filename, 'w') as f:
-        saveNEOValuesToFile(neogen, f)
+        saveNEOValuesToFile(neogen, f, is_lcadc=is_lcadc)
 
 
-def saveNEOValuesToFile(neogen, f):
+def saveNEOValuesToFile(neogen, f, is_lcadc=False):
 
     if len(neogen["w"]) > 0:
         f.create_dataset('w', data=neogen["w"])
 
-    if len(neogen["neo"]) > 0:
-        f.create_dataset('neo', data=neogen["neo"])
+    if is_lcadc:
+        for w_idx, w_item in enumerate(neogen["neo"]):
+            for idx, item in enumerate(w_item):
+                f.create_dataset('neo/' + str(w_idx) + '/' + str(idx),
+                                 data=item)
 
-    saveConvertedValuesToFile(neogen, f)
+    else:
+        if len(neogen["neo"]) > 0:
+            f.create_dataset('neo', data=neogen["neo"])
+
+    saveConvertedValuesToFile(neogen, f, is_lcadc=is_lcadc)
 
 
 def saveArray(array, filename=None, path='array'):

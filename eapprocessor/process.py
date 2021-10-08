@@ -4,7 +4,9 @@ from pathlib import Path
 import numpy as np
 from eapprocessor.tools.save import save_converted_values, save_neo_values, \
     save_indexes_and_counts
-from eapprocessor.integrate import convert_adc_recordings, normalize_arrays, \
+from eapprocessor.integrate import convert_adc_recordings, \
+    convert_lcadc_recordings, \
+    normalize_arrays, \
     apply_neo_to_dataset, evaluate_threshold_maximum, \
     evaluate_threshold_maximum_array
 from eapprocessor.mearec.api import load_recordings
@@ -19,12 +21,19 @@ DEFAULT_OUTPUT = "./output"
 default_dir = Path(DEFAULT_OUTPUT)
 
 FOLDER_ADC = "adc"
+FOLDER_LCADC = "lcadc"
 FOLDER_PREPROCESSOR = "preprocessor"
+FOLDER_PREPROCESSOR_LCADC = "preprocessor_lcadc"
 FOLDER_EVALUATOR = "evaluator"
 
 
-def get_converted_adc(recfile=None, voltage_ref=1000, resolution=12,
-                      noise_level=None, fs=None, verbose=True):
+def get_converted_adc(recfile=None,
+                      voltage_ref=1000,
+                      resolution=12,
+                      noise_level=None,
+                      fs=None,
+                      verbose=True,
+                      is_lcadc=False):
 
     recfile = Path(recfile)
     recgen = load_recordings(datafolder=recfile,
@@ -32,15 +41,27 @@ def get_converted_adc(recfile=None, voltage_ref=1000, resolution=12,
                              fs=fs,
                              verbose=verbose)
 
-    adc = convert_adc_recordings(
-        recgen.recordings,
-        voltage_ref=voltage_ref,
-        resolution=resolution)
-
-    normalized = normalize_arrays(adc, resolution=resolution)
     adcgen = {}
-    adcgen["adc"] = adc
-    adcgen["normalized"] = normalized
+    if is_lcadc:
+
+        indexes, lcadc = convert_lcadc_recordings(
+            recgen.recordings,
+            voltage_ref=voltage_ref,
+            resolution=resolution)
+        normalized = normalize_arrays(lcadc, resolution=resolution)
+        adcgen["lcadc"] = lcadc
+        adcgen["indexes"] = indexes
+        adcgen["normalized"] = normalized
+    else:
+        adc = convert_adc_recordings(
+            recgen.recordings,
+            voltage_ref=voltage_ref,
+            resolution=resolution)
+
+        normalized = normalize_arrays(adc, resolution=resolution)
+        adcgen["adc"] = adc
+        adcgen["normalized"] = normalized
+
     adcgen["adcinfo"] = {
         "voltage_ref": voltage_ref,
         "resolution": resolution
@@ -55,12 +76,17 @@ def get_converted_adc(recfile=None, voltage_ref=1000, resolution=12,
     else:
         parent_dir = default_dir
 
+    if is_lcadc:
+        output_folder = FOLDER_LCADC
+    else:
+        output_folder = FOLDER_ADC
+
     filename = str(
         parent_dir /
-        FOLDER_ADC /
+        output_folder /
         f'samples_{resolution}_{np.round(noise_level, 2)}uV_'
         f'{int(fs)}Hz.h5')
-    save_converted_values(adcgen, filename)
+    save_converted_values(adcgen, filename, is_lcadc=is_lcadc)
 
     return adcgen
 
@@ -71,20 +97,21 @@ def get_neo(
         resolution=None,
         noise_level=None,
         fs=None,
-        verbose=None):
+        verbose=None,
+        is_lcadc=False):
 
     adcgen = load_converted_values(adcfile,
                                    resolution=resolution,
                                    noise_level=noise_level,
                                    fs=fs,
-                                   verbose=verbose)
+                                   verbose=verbose,
+                                   is_lcadc=is_lcadc)
 
     neogen = adcgen
     neogen["w"] = w
     neogen["neo"] = [
         apply_neo_to_dataset(
-            np.array(
-                adcgen["normalized"]),
+            adcgen["normalized"],
             cw) for cw in w]
 
     resolution = adcgen["adcinfo"]["resolution"]
@@ -96,15 +123,20 @@ def get_neo(
     else:
         parent_dir = default_dir
 
+    if is_lcadc:
+        output_folder = FOLDER_PREPROCESSOR
+    else:
+        output_folder = FOLDER_PREPROCESSOR_LCADC
+
     filename = str(
         parent_dir /
-        FOLDER_PREPROCESSOR /
+        output_folder /
         f'preprocessed_neo_{resolution}_'
         f'{np.round(noise_level, 2)}uV_'
         f'{int(fs)}Hz_'
         f'{time.strftime("%Y-%m-%d_%H-%M")}.h5')
 
-    save_neo_values(neogen, filename)
+    save_neo_values(neogen, filename, is_lcadc)
     return neogen
 
 

@@ -1,7 +1,7 @@
 import matplotlib.pylab as plt
 
 
-def plotElectrodesAxons(recgen):
+def plot_electrodes_axons(recgen):
 
     electrodes_positions = recgen.channel_positions[:].T
     neurons_positions = recgen.template_locations[:].T

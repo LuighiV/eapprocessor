@@ -29,7 +29,8 @@ def load_converted_values(
         noise_level=None,
         fs=None,
         verbose=True,
-        check_suffix=True):
+        check_suffix=True,
+        is_lcadc=False):
 
     filename = Path(filename).resolve()
     adc_dict = {}
@@ -49,7 +50,7 @@ def load_converted_values(
     if (filename.suffix in ['.h5', '.hdf5']) or (not check_suffix):
         f = h5py.File(str(filename), 'r')
 
-        adc_dict = load_converted_values_from_file(f)
+        adc_dict = load_converted_values_from_file(f, is_lcadc=is_lcadc)
 
     else:
         raise Exception("Converted values must be an hdf5 file (.h5 or .hdf5)")
@@ -57,17 +58,41 @@ def load_converted_values(
     return adc_dict
 
 
-def load_converted_values_from_file(f, path=''):
+def load_converted_values_from_file(f, path='', is_lcadc=False):
 
     adc_dict = {}
 
     adc_dict["adcinfo"] = mr.load_dict_from_hdf5(f, path + 'adcinfo/')
 
-    if f.get(path + 'adc') is not None:
-        adc_dict["adc"] = f.get(path + 'adc')
+    if is_lcadc:
+        if f.get(path + 'channels') is not None:
+            adc_dict["channels"] = f.get(path + 'channels')
 
-    if f.get(path + 'normalized') is not None:
-        adc_dict["normalized"] = f.get(path + 'normalized')
+            channels = np.array(adc_dict["channels"])
+            lcadc = []
+            indexes = []
+            normalized = []
+            for channel in channels:
+                if f.get(path + 'lcadc/' + str(channel)) is not None:
+                    lcadc += [f.get(path + 'lcadc/' + str(channel))]
+                if f.get(path + 'indexes/' + str(channel)) is not None:
+                    indexes += [f.get(path + 'indexes/' + str(channel))]
+                if f.get(path + 'normalized/' + str(channel)) is not None:
+                    normalized += [f.get(path + 'normalized/' + str(channel))]
+
+            adc_dict["lcadc"] = lcadc
+            adc_dict["indexes"] = indexes
+            adc_dict["normalized"] = normalized
+        else:
+            assert AttributeError("When using LCADC you must provide the "
+                                  "channels information")
+
+    else:
+        if f.get(path + 'adc') is not None:
+            adc_dict["adc"] = f.get(path + 'adc')
+
+        if f.get(path + 'normalized') is not None:
+            adc_dict["normalized"] = f.get(path + 'normalized')
 
     rec_dict, info = mr.load_recordings_from_file(f, path=path + 'recordings/')
     recgen = mr.RecordingGenerator(rec_dict=rec_dict, info=info)
