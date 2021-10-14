@@ -116,6 +116,7 @@ def get_neo(
 
     resolution = adcgen["adcinfo"]["resolution"]
     noise_level = adcgen["recordings"].info["recordings"]["noise_level"]
+    fs = adcgen["recordings"].info["recordings"]["fs"]
 
     if adcfile is not None:
         adcfile = Path(adcfile).resolve()
@@ -124,9 +125,9 @@ def get_neo(
         parent_dir = default_dir
 
     if is_lcadc:
-        output_folder = FOLDER_PREPROCESSOR
-    else:
         output_folder = FOLDER_PREPROCESSOR_LCADC
+    else:
+        output_folder = FOLDER_PREPROCESSOR
 
     filename = str(
         parent_dir /
