@@ -6,6 +6,40 @@ import MEArec as mr
 import numpy as np
 
 
+def find_hdf5_file_from_folder(path,
+                               pattern="*",
+                               reverse=True,
+                               verbose=True
+                               ):
+
+    files = [f for f in path.rglob(pattern) if
+             f.name.endswith(('.h5', '.hdf5'))]
+    files.sort(reverse=reverse)
+
+    if len(files) == 0:
+        raise AttributeError(files, " folder doesn't contain hfd5 files")
+
+    filename = files[0]
+    if verbose:
+        print(f'Found file {filename}')
+    return filename
+
+
+def get_hdf5_file(path,
+                  pattern="*",
+                  reverse=True,
+                  verbose=True,
+                  check_suffix=True):
+
+    path = Path(path).resolve()
+    if path.is_dir():
+        return find_hdf5_file_from_folder(path, pattern, reverse, verbose)
+    elif (path.suffix in ['.h5', '.hdf5']) or (not check_suffix):
+        return path
+    else:
+        raise AttributeError(path, " is neither a folder or hdf5 file")
+
+
 def find_recording_files(
         folder,
         resolution=None,

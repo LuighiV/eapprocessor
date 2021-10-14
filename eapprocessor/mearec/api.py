@@ -7,6 +7,7 @@
 :Description: Module to interface with MEArec
 """
 
+from eapprocessor.tools.load import get_hdf5_file
 from pathlib import Path
 from typing import Union, Dict
 from distutils.version import StrictVersion
@@ -83,6 +84,7 @@ def generate_templates(
         recompile: bool = None,
         parallel: bool = None,
         verbose: bool = None,
+        params: dict = None,
         fname: str = None) -> mr.TemplateGenerator:
     """Function to generate templates.
 
@@ -132,7 +134,11 @@ def generate_templates(
             params_dict = yaml.load(file, Loader=yaml.FullLoader)
         else:
             params_dict = yaml.load(file)
-            print(params_dict)
+
+    if params is not None:
+        params_dict.update(params)
+
+    print(params_dict)
 
     print(templates_folder)
     print(cell_models_folder)
@@ -176,7 +182,8 @@ def generate_recordings(
         njobs: int = None,
         fname: Union[str, Path] = None,
         fs: int = None,
-        noise_level: float = 10) -> mr.RecordingGenerator:
+        noise_level: float = 10,
+        params: dict = None) -> mr.RecordingGenerator:
     """Function to generate recordings according with some custom parameters
     such as the sampling frequency or the noise_level
 
@@ -228,16 +235,21 @@ def generate_recordings(
         else:
             params_dict = yaml.load(file)
 
-    print(params_dict)
-
     if noise_level is not None:
         params_dict["recordings"]["noise_level"] = noise_level
 
     if fs is not None:
         params_dict["recordings"]["fs"] = fs
 
+    if params is not None:
+        for key in params.keys():
+            if key in params_dict.keys():
+                params_dict[key].update(params[key])
+
+    print(params_dict)
+    templates_file = get_hdf5_file(templates_folder, verbose=verbose)
     recordings = mr.gen_recordings(
-        templates=templates_folder,
+        templates=templates_file,
         params=params_dict,
         verbose=verbose,
         n_jobs=njobs)
@@ -270,7 +282,7 @@ def generate_recordings(
         raise AttributeError("recordings_folder should be not null")
 
     save_fname = str(Path(recordings_folder) / fname)
-    mr.save_recording_generator(recordings, save_fname, verbose=True)
+    mr.save_recording_generator(recordings, save_fname, verbose=verbose)
     return recordings
 
 
@@ -298,28 +310,20 @@ def load_recordings(datafolder: Union[str, Path] = None,
     else:
         recordings_folder = datafolder
 
+    recordings = Path(recordings_folder).resolve()
     if noise_level is not None:
-        recordings = Path(recordings_folder).resolve()
         pattern = f'_{np.round(noise_level, 2)}uV'
 
         if fs is not None:
             pattern += f'_{int(fs)}Hz'
-
-        recording_files = [f for f in recordings.rglob(f"*{pattern}*") if
-                           f.name.endswith(('.h5', '.hdf5'))]
-        recording_files.sort(reverse=True)
-        if len(recording_files) == 0:
-            raise AttributeError(
-                recordings,
-                ' contains no recordings models with noise_level ',
-                noise_level)
-
-        recordings = recording_files[0]
-        if verbose:
-            print(f'Loading file {recordings}')
-        recgen = mr.load_recordings(recordings, verbose=verbose)
+        pattern = f"*{pattern}*"
     else:
-        recgen = mr.load_recordings(recordings_folder, verbose=verbose)
+        pattern = "*"
+
+    recordings_file = get_hdf5_file(recordings,
+                                    pattern=pattern,
+                                    verbose=verbose)
+    recgen = mr.load_recordings(recordings_file, verbose=verbose)
     return recgen
 
 
