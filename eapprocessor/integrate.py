@@ -12,7 +12,7 @@ from eapprocessor.hwsimulator.adc \
     import convert_array, convert_lcadc, normalize
 from eapprocessor.preprocessor.neo import apply_neo_to_array
 from eapprocessor.detector.threshold \
-    import getIndexesOverListOfThresholdMaximum
+    import get_indexes_over_threshold_list_maximum
 
 
 def convert_adc_recordings(
@@ -115,7 +115,9 @@ def apply_neo_to_dataset(dataset, w=1):
 def evaluate_threshold_maximum(dataset, number=100, absolute=False):
 
     listidx = []
+    listidx_spikes = []
     counts = []
+    counts_spikes = []
     ths = []
     total = len(dataset)
     i = 1
@@ -129,34 +131,43 @@ def evaluate_threshold_maximum(dataset, number=100, absolute=False):
 
     # else:
     for array in dataset:
-        indexes, count, th = getIndexesOverListOfThresholdMaximum(
-            array, number=number, absolute=absolute)
+        indexes, count, indexes_spikes,\
+            count_spikes, th = get_indexes_over_threshold_list_maximum(
+                array, number=number, absolute=absolute)
         listidx += [indexes]
+        listidx_spikes += [indexes_spikes]
         counts += [count]
+        counts_spikes += [count_spikes]
         ths += [th]
         print(f"Processed threshold {i}/{total} in dataset")
         i += 1
 
-    return listidx, counts, ths
+    return listidx, counts, listidx_spikes, counts_spikes, ths
 
 
 def evaluate_threshold_maximum_array(arrDataset, number=100, absolute=False):
 
     listidx = []
+    listidx_spikes = []
     counts = []
+    counts_spikes = []
     ths = []
     total = len(arrDataset)
     i = 1
     for dataset in arrDataset:
-        indexes, count, th = evaluate_threshold_maximum(dataset, number=number,
-                                                        absolute=absolute)
+        indexes, count, indexes_spikes, \
+            count_spikes, th = evaluate_threshold_maximum(
+                dataset, number=number,
+                absolute=absolute)
         listidx += [indexes]
+        listidx_spikes += [indexes_spikes]
         counts += [count]
+        counts_spikes += [count_spikes]
         ths += [th]
         print(f"Processed dataset {i}/{total} in array of dataset")
         i += 1
 
-    return listidx, counts, ths
+    return listidx, counts, listidx_spikes, counts_spikes, ths
 
 
 if __name__ == "__main__":

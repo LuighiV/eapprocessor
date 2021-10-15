@@ -172,12 +172,15 @@ def get_over_threshold(neofile,
     neogen["thresholds"] = nthresholds
 
     print("Processing recordings")
-    listidx, counts, ths = evaluate_threshold_maximum(
-        recordings, nthresholds, absolute=absolute_recordings)
+    listidx, counts, listidx_spikes, \
+        counts_spikes, ths = evaluate_threshold_maximum(
+            recordings, nthresholds, absolute=absolute_recordings)
     threcordings = {"source_file": str(fneo),
                     "channels": ch_indexes,
                     "indexes": listidx,
                     "counts": counts,
+                    "indexes_spikes": listidx_spikes,
+                    "counts_spikes": counts_spikes,
                     "thresholds": ths,
                     "count_thresholds": nthresholds}
 
@@ -207,12 +210,16 @@ def get_over_threshold(neofile,
     del threcordings
 
     print("Processing normalized")
-    listidx, counts, ths = evaluate_threshold_maximum(normalized, nthresholds,
-                                                      absolute=absolute_adc)
+    listidx, counts, listidx_spikes,\
+        counts_spikes, ths = evaluate_threshold_maximum(normalized,
+                                                        nthresholds,
+                                                        absolute=absolute_adc)
     thnorm = {"source_file": str(fneo),
               "channels": ch_indexes,
               "indexes": listidx,
               "counts": counts,
+              "indexes_spikes": listidx_spikes,
+              "counts_spikes": counts_spikes,
               "thresholds": ths,
               "count_thresholds": nthresholds}
 
@@ -225,12 +232,15 @@ def get_over_threshold(neofile,
     del thnorm
 
     print("Processing neo array")
-    listidx, counts, ths = evaluate_threshold_maximum_array(
-        neo, nthresholds, absolute=absolute_neo)
+    listidx, counts, listidx_spikes, \
+        counts_spikes, ths = evaluate_threshold_maximum_array(
+            neo, nthresholds, absolute=absolute_neo)
     thneo = {"source_file": str(fneo),
              "channels": ch_indexes,
              "indexes": listidx,
              "counts": counts,
+             "indexes_spikes": listidx_spikes,
+             "counts_spikes": counts_spikes,
              "thresholds": ths,
              "count_thresholds": nthresholds}
 

@@ -9,8 +9,7 @@ import numpy as np
 def find_hdf5_file_from_folder(path,
                                pattern="*",
                                reverse=True,
-                               verbose=True
-                               ):
+                               verbose=True):
 
     files = [f for f in path.rglob(pattern) if
              f.name.endswith(('.h5', '.hdf5'))]
@@ -302,7 +301,8 @@ def load_count_evaluation(folder=None,
                           normalized_file=None,
                           neo_file=None,
                           include_channels=True,
-                          verbose=True):
+                          verbose=True,
+                          spikes=True):
 
     if folder is not None:
         files_dict = get_evaluation_files(folder,
@@ -321,9 +321,14 @@ def load_count_evaluation(folder=None,
 
     if include_channels:
         count_dict["channels"] = load_channels(recordings_file)
-    count_dict["recordings"] = load_count(recordings_file)
-    count_dict["normalized"] = load_count(normalized_file)
-    count_dict["neo"] = load_count(neo_file)
+
+    if spikes:
+        loader = load_count_spikes
+    else:
+        loader = load_count
+    count_dict["recordings"] = loader(recordings_file)
+    count_dict["normalized"] = loader(normalized_file)
+    count_dict["neo"] = loader(neo_file)
 
     return count_dict
 
@@ -363,6 +368,13 @@ def load_count(filename, path=''):
                           path=path)
 
 
+def load_count_spikes(filename, path=''):
+
+    return load_parameter(filename=filename,
+                          parameter="counts_spikes",
+                          path=path)
+
+
 def load_channels(filename, path=''):
 
     return load_parameter(filename=filename,
@@ -374,4 +386,10 @@ def load_indexes(filename, path=''):
 
     return load_parameter(filename=filename,
                           parameter="indexes",
+                          path=path)
+
+def load_indexes_spikes(filename, path=''):
+
+    return load_parameter(filename=filename,
+                          parameter="indexes_spikes",
                           path=path)
