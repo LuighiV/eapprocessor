@@ -11,10 +11,16 @@ from eapprocessor.integrate import convert_adc_recordings, \
     evaluate_threshold_maximum_array
 from eapprocessor.mearec.api import load_recordings
 from eapprocessor.tools.load import load_converted_values, load_neo, \
-    load_count_evaluation, load_indexes
+    load_count_evaluation, load_indexes, load_channels
 
 from eapprocessor.evaluator.spikes import \
     comparison_detection_array_spiketrain_array
+
+
+from eapprocessor.tools.cast import convert_to_list
+from eapprocessor.tools.indexes import \
+    project_values_array_list_to_indexes_array, \
+    project_values_array_to_indexes_array
 
 
 DEFAULT_OUTPUT = "./output"
@@ -25,6 +31,7 @@ FOLDER_LCADC = "lcadc"
 FOLDER_PREPROCESSOR = "preprocessor"
 FOLDER_PREPROCESSOR_LCADC = "preprocessor_lcadc"
 FOLDER_EVALUATOR = "evaluator"
+FOLDER_EVALUATOR_LCADC = "evaluator_lcadc"
 
 
 def get_converted_adc(recfile=None,
@@ -141,31 +148,38 @@ def get_neo(
     return neogen
 
 
-def get_over_threshold(neofile,
-                       resolution=None,
-                       noise_level=None,
-                       fs=None,
-                       ch_indexes=None,
-                       nthresholds=10,
-                       verbose=None,
-                       absolute_recordings=True,
-                       absolute_adc=True,
-                       absolute_neo=False):
+def get_over_threshold(
+        neofile,
+        resolution=None,
+        noise_level=None,
+        fs=None,
+        ch_indexes=None,
+        nthresholds=10,
+        verbose=None,
+        absolute_recordings=True,
+        absolute_adc=True,
+        absolute_neo=False,
+        is_lcadc=False):
 
     neogen, fneo = load_neo(neofile,
                             resolution=resolution,
                             noise_level=noise_level,
                             fs=fs,
-                            verbose=verbose)
+                            verbose=verbose,
+                            is_lcadc=is_lcadc)
 
     recordings = np.array(neogen["recordings"].recordings[:, :].T)
-    normalized = neogen["normalized"]
+    normalized = np.array(neogen["normalized"])
     neo = neogen["neo"]
+    # print(neo)
 
     if ch_indexes is not None:
         recordings = recordings[ch_indexes]
         normalized = normalized[ch_indexes]
-        neo = neo[:, ch_indexes]
+        if isinstance(neo, np.ndarray):
+            neo = neo[:, ch_indexes]
+        else:
+            neo = [np.array(neo_w)[ch_indexes] for neo_w in neo]
     else:
         ch_indexes = np.arange(len(recordings))
 
@@ -201,9 +215,14 @@ def get_over_threshold(neofile,
     if ch_indexes is not None:
         fileid = 'subset_' + fileid
 
+    if is_lcadc:
+        output_folder = FOLDER_EVALUATOR_LCADC
+    else:
+        output_folder = FOLDER_EVALUATOR
+
     filename_rec = str(
         parent_dir /
-        FOLDER_EVALUATOR /
+        output_folder /
         f'threshold_recordings_{fileid}_{time.strftime("%Y-%m-%d_%H-%M")}.h5')
 
     save_indexes_and_counts(threcordings, filename_rec)
@@ -223,12 +242,14 @@ def get_over_threshold(neofile,
               "thresholds": ths,
               "count_thresholds": nthresholds}
 
+    print(thnorm)
     filename_norm = str(
         parent_dir /
-        FOLDER_EVALUATOR /
+        output_folder /
         f'threshold_normalized_{fileid}_{time.strftime("%Y-%m-%d_%H-%M")}.h5')
 
-    save_indexes_and_counts(thnorm, filename_norm)
+    save_indexes_and_counts(thnorm, filename_norm,
+                            is_lcadc=is_lcadc)
     del thnorm
 
     print("Processing neo array")
@@ -246,22 +267,64 @@ def get_over_threshold(neofile,
 
     filename_neo = str(
         parent_dir /
-        FOLDER_EVALUATOR /
+        output_folder /
         f'threshold_neo_{fileid}_{time.strftime("%Y-%m-%d_%H-%M")}.h5')
 
-    save_indexes_and_counts(thneo, filename_neo)
+    save_indexes_and_counts(thneo, filename_neo,
+                            is_lcadc=is_lcadc,
+                            is_neo=True,
+                            w=neogen['w'])
 
     return neogen
 
 
 def get_results_evaluation_dataset_array(dataset_files,
                                          indexes_list,
-                                         channel_idx=0):
+                                         channel_idx=0,
+                                         is_lcadc=False,
+                                         is_neo=False,
+                                         origin_files=None):
 
     results_list = []
-    for dataset_file in dataset_files:
+    for idx, dataset_file in enumerate(dataset_files):
 
-        evaluation_indexes = np.array(load_indexes(dataset_file))
+        if is_lcadc:
+            evaluation_indexes = load_indexes(dataset_file, is_lcadc=is_lcadc)
+            evaluation_indexes = convert_to_list(evaluation_indexes)
+
+            print("Evaluation indexes")
+            print(evaluation_indexes)
+
+            neo_dict, _ = load_neo(origin_files[idx], is_lcadc=is_lcadc)
+            print(neo_dict)
+            channels = np.array(load_channels(dataset_file))
+            original_indexes = [np.array(channel_indexes) for
+                                channel_indexes in neo_dict["indexes"]]
+
+            print("Original indexes")
+            print(original_indexes)
+            selected_indexes = [original_indexes[ch_idx] for ch_idx in
+                                channels]
+
+            print("Original indexes")
+            print(selected_indexes)
+            timestamps_indexes = np.arange(len(neo_dict["recordings"]
+                                               .timestamps))
+
+            if is_neo:
+                evaluation_indexes = \
+                    project_values_array_list_to_indexes_array(
+                        original_indexes=timestamps_indexes,
+                        values_array_list=evaluation_indexes,
+                        indexes_array=selected_indexes)
+            else:
+                evaluation_indexes = \
+                    project_values_array_to_indexes_array(
+                        original_indexes=timestamps_indexes,
+                        values_array=evaluation_indexes,
+                        indexes_array=selected_indexes)
+        else:
+            evaluation_indexes = np.array(load_indexes(dataset_file))
 
         if len(evaluation_indexes.shape) == 4:
             results = [

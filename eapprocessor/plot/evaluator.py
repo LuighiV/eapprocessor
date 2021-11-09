@@ -50,6 +50,62 @@ def plot_accuracy_evaluator(truepositive, falsenegative):
     ax.legend(loc="best")
 
 
+def plot_accuracy(reference, accuracy, label, ax=None):
+
+    if ax is None:
+        fig = plt.figure()
+        ax = fig.add_subplot(1, 1, 1)
+
+    ax.plot(reference, accuracy, '.--', label=label)
+
+
+def plot_accuracy_list(accuracy_list, labels,
+                       reference=None,
+                       spiketrains_labels=None,
+                       append_title=None):
+
+    if append_title is None:
+        append_title = ""
+
+    # Evaluate if list is for various spiketrains
+    if len(accuracy_list[0].shape) == 2:
+        n_spiketrains = accuracy_list[0].shape[1]
+
+        for idx in range(n_spiketrains):
+            fig = plt.figure()
+            ax = fig.add_subplot(1, 1, 1)
+            for idx_fpr, accuracy in enumerate(accuracy_list):
+
+                if reference is None:
+                    reference = np.arange(len(accuracy[:, idx]))
+
+                plot_accuracy(reference,
+                              accuracy[:, idx],
+                              label=labels[idx_fpr],
+                              ax=ax)
+            ax.legend(loc="best")
+            ax.set_xlabel("Threshold reference")
+            ax.set_ylabel("Accuracy")
+            ax.set_title(f"Accuracy for spiketrain {spiketrains_labels[idx]}"
+                         f"{append_title}")
+    else:
+
+        fig = plt.figure()
+        ax = fig.add_subplot(1, 1, 1)
+        for idx_fpr, accuracy in enumerate(accuracy_list):
+
+            if reference is None:
+                reference = np.arange(len(accuracy[:]))
+            plot_accuracy(reference,
+                          accuracy[:],
+                          label=labels[idx_fpr],
+                          ax=ax)
+        ax.legend(loc="best")
+        ax.set_xlabel("Threshold reference")
+        ax.set_ylabel("Accuracy")
+        ax.set_title("Accuracy curve")
+
+
 def plot_roc(fpr, tpr, label, ax=None):
 
     if ax is None:

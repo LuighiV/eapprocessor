@@ -139,6 +139,7 @@ def load_neo(filename=None,
              noise_level=None,
              fs=None,
              verbose=True,
+             is_lcadc=False,
              check_suffix=True):
 
     filename = Path(filename).resolve()
@@ -159,7 +160,7 @@ def load_neo(filename=None,
     if (filename.suffix in ['.h5', '.hdf5']) or (not check_suffix):
         file = h5py.File(str(filename), 'r')
 
-        neo_dict = load_neo_from_file(file)
+        neo_dict = load_neo_from_file(file, is_lcadc=is_lcadc)
 
     else:
         raise Exception("NEO values must be an hdf5 file (.h5 or .hdf5)")
@@ -167,15 +168,34 @@ def load_neo(filename=None,
     return neo_dict, filename
 
 
-def load_neo_from_file(f, path=''):
+def load_neo_from_file(f, is_lcadc=False, path=''):
 
-    neo_dict = load_converted_values_from_file(f, path=path)
+    neo_dict = load_converted_values_from_file(f,
+                                               is_lcadc=is_lcadc,
+                                               path=path)
 
     if f.get(path + 'w') is not None:
         neo_dict["w"] = f.get(path + 'w')
 
-    if f.get(path + 'neo') is not None:
-        neo_dict["neo"] = f.get(path + 'neo')
+    if is_lcadc:
+        channels = np.array(neo_dict["channels"])
+        neo = []
+
+        for neo_id, _ in enumerate(neo_dict["w"]):
+            neo_w = []
+            for channel in channels:
+                if f.get(path + 'neo/' +
+                         str(neo_id) + "/" + str(channel)) is not None:
+                    neo_w += [f.get(path + 'neo/' +
+                                    str(neo_id) + "/" + str(channel))]
+            neo += [neo_w]
+
+        neo_dict["neo"] = neo
+
+    else:
+
+        if f.get(path + 'neo') is not None:
+            neo_dict["neo"] = f.get(path + 'neo')
 
     return neo_dict
 
@@ -277,6 +297,8 @@ def get_evaluation_files(folder, sourcefile=None, verbose=True):
     else:
         related_files = find_related_files(folder=folder,
                                            sourcefile=sourcefile)
+
+        print(related_files)
         record = [f for f in related_files if
                   f.name.startswith("threshold_recordings")][0]
 
@@ -295,14 +317,16 @@ def get_evaluation_files(folder, sourcefile=None, verbose=True):
     return files_dict
 
 
-def load_count_evaluation(folder=None,
-                          sourcefile=None,
-                          recordings_file=None,
-                          normalized_file=None,
-                          neo_file=None,
-                          include_channels=True,
-                          verbose=True,
-                          spikes=True):
+def load_count_evaluation(
+        folder=None,
+        sourcefile=None,
+        recordings_file=None,
+        normalized_file=None,
+        neo_file=None,
+        include_channels=True,
+        verbose=True,
+        is_lcadc=False,
+        spikes=True):
 
     if folder is not None:
         files_dict = get_evaluation_files(folder,
@@ -345,6 +369,13 @@ def load_evaluation_from_file(f, path=''):
     return mr.load_dict_from_hdf5(f, path=path)
 
 
+def load_dict(filename, path=""):
+
+    f = h5py.File(str(filename), 'r')
+
+    return mr.load_dict_from_hdf5(f, path=path)
+
+
 def load_parameter(filename, parameter, path=""):
 
     f = h5py.File(str(filename), 'r')
@@ -382,11 +413,20 @@ def load_channels(filename, path=''):
                           path=path)
 
 
-def load_indexes(filename, path=''):
+def load_indexes(filename, path='', is_lcadc=False):
 
-    return load_parameter(filename=filename,
-                          parameter="indexes",
-                          path=path)
+    if is_lcadc:
+        indexes = load_dict(filename=filename, path="indexes/")
+    else:
+        indexes = load_parameter(filename=filename,
+                                 parameter="indexes",
+                                 path=path)
+
+    if indexes is None:
+        return []
+    else:
+        return indexes
+
 
 def load_indexes_spikes(filename, path=''):
 

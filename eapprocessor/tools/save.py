@@ -9,10 +9,10 @@ def save_converted_values(adcgen, filename=None, is_lcadc=False):
     filename.parent.mkdir(parents=True, exist_ok=True)
 
     with h5py.File(filename, 'w') as f:
-        saveConvertedValuesToFile(adcgen, f, is_lcadc=is_lcadc)
+        save_converted_values_to_file(adcgen, f, is_lcadc=is_lcadc)
 
 
-def saveConvertedValuesToFile(adcgen, f, is_lcadc=False):
+def save_converted_values_to_file(adcgen, f, is_lcadc=False):
 
     mr.save_dict_to_hdf5(adcgen["adcinfo"], f, 'adcinfo/')
     if is_lcadc:
@@ -48,10 +48,10 @@ def save_neo_values(neogen, filename=None, is_lcadc=False):
     filename.parent.mkdir(parents=True, exist_ok=True)
 
     with h5py.File(filename, 'w') as f:
-        saveNEOValuesToFile(neogen, f, is_lcadc=is_lcadc)
+        save_neo_values_to_file(neogen, f, is_lcadc=is_lcadc)
 
 
-def saveNEOValuesToFile(neogen, f, is_lcadc=False):
+def save_neo_values_to_file(neogen, f, is_lcadc=False):
 
     if len(neogen["w"]) > 0:
         f.create_dataset('w', data=neogen["w"])
@@ -66,10 +66,10 @@ def saveNEOValuesToFile(neogen, f, is_lcadc=False):
         if len(neogen["neo"]) > 0:
             f.create_dataset('neo', data=neogen["neo"])
 
-    saveConvertedValuesToFile(neogen, f, is_lcadc=is_lcadc)
+    save_converted_values_to_file(neogen, f, is_lcadc=is_lcadc)
 
 
-def saveArray(array, filename=None, path='array'):
+def save_array(array, filename=None, path='array'):
     filename = Path(filename)
     filename.parent.mkdir(parents=True, exist_ok=True)
 
@@ -77,62 +77,96 @@ def saveArray(array, filename=None, path='array'):
         f.create_dataset(path, data=array)
 
 
-def save_indexes_and_counts(dic, filename=None, path=''):
+def save_indexes_and_counts(dic, filename=None, is_lcadc=False, path='',
+                            is_neo=False, w=None):
 
     filename = Path(filename)
     filename.parent.mkdir(parents=True, exist_ok=True)
 
     with h5py.File(filename, 'w') as f:
-        createIndexAndCountDataset(
-            dic, f, path)
+        create_index_and_count_dataset(
+            dic, f, path=path, is_lcadc=is_lcadc, is_neo=is_neo, w=w)
 
 
-def saveThresholdValues(thgen, filename=None):
+def save_threshold_values(thgen, filename=None):
     filename = Path(filename)
     filename.parent.mkdir(parents=True, exist_ok=True)
 
     with h5py.File(filename, 'w') as f:
-        saveThresholdValuesToFile(thgen, f)
+        save_threshold_values_to_file(thgen, f)
 
 
-def saveThresholdValuesToFile(thgen, f):
+def save_threshold_values_to_file(thgen, f):
 
     if len(thgen["threshold"]) > 0:
 
         threshold = thgen["threshold"]
         if len(threshold["recordings"]) > 0:
-            createIndexAndCountDataset(
+            create_index_and_count_dataset(
                 threshold["recordings"], f, "threshold/recordings")
 
         if len(threshold["normalized"]) > 0:
-            createIndexAndCountDataset(
+            create_index_and_count_dataset(
                 threshold["normalized"], f, "threshold/normalized")
 
         if len(threshold["neo"]) > 0:
             for wdx in range(len(threshold["neo"])):
-                createIndexAndCountDataset(
+                create_index_and_count_dataset(
                     threshold["neo"], f, f"threshold/neo/{wdx}")
 
-    saveNEOValuesToFile(thgen, f)
+    save_neo_values_to_file(thgen, f)
 
 
-def createIndexAndCountDataset(data, f, path=""):
+def save_evaluation_per_channel(array, f, channels, path="",
+                                is_neo=False, w=None):
 
-    mr.save_dict_to_hdf5(data, f, path)
-    # if len(data["thresholds"]) > 0:
-    #     f.create_dataset(
-    #         path + 'thresholds',
-    #         data=data["thresholds"])
+    if is_neo:
+        for w_idx, _ in enumerate(w):
+            for channel_idx, _ in enumerate(channels):
+                f.create_dataset(
+                    path + str(w_idx) + '/' + str(channel_idx),
+                    data=array[w_idx][channel_idx])
+    else:
+        for channel_idx, _ in enumerate(channels):
+            f.create_dataset(
+                path + str(channel_idx),
+                data=array[channel_idx])
 
-    # if data["count_thresholds"]:
-    #     f[path + "count_thresholds"] = data["count_thresholds"]
 
-    # if len(data["indexes"]) > 0:
-    #     f.create_dataset(
-    #         path + 'indexes',
-    #         data=data["indexes"])
+def create_index_and_count_dataset(data, f, path="",
+                                   is_lcadc=False,
+                                   is_neo=False,
+                                   w=None):
 
-    # if len(data["counts"]) > 0:
-    #     f.create_dataset(
-    #         path + 'counts',
-    #         data=data["counts"])
+    if is_lcadc:
+
+        if "source_file" in data.keys():
+            f[path + 'source_file'] = data["source_file"]
+
+        if len(data["channels"]) > 0:
+            f.create_dataset(
+                path + 'channels',
+                data=data["channels"])
+        else:
+            raise AttributeError("Dataset must have channel info")
+
+        if data["count_thresholds"]:
+            f[path + "count_thresholds"] = data["count_thresholds"]
+
+        keys_arrays = ["thresholds", "counts", "counts_spikes"]
+
+        for key in keys_arrays:
+            if len(data[key]) > 0:
+                f.create_dataset(path + key, data=data[key])
+
+        keys = ["indexes", "indexes_spikes"]
+
+        for key in keys:
+            if len(data[key]) > 0:
+                save_evaluation_per_channel(data[key], f,
+                                            data["channels"],
+                                            path=path + f"{key}/",
+                                            is_neo=is_neo,
+                                            w=w)
+    else:
+        mr.save_dict_to_hdf5(data, f, path)

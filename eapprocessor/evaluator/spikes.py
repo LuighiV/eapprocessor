@@ -119,6 +119,64 @@ def select_comparison(array_comparison,
     return array_comparison
 
 
+def calc_accuracy(dic):
+
+    tp = dic["truepositive"]
+    fp = dic["falsepositive"]
+    fn = dic["falsenegative"]
+
+    return (tp) / (tp + fp + fn)
+
+
+def convert_to_accuracy(array_comparison,
+                        range_reference=None,
+                        range_test=None):
+
+    array_comparison = select_comparison(array_comparison=array_comparison,
+                                         range_reference=range_reference,
+                                         range_test=range_test)
+    accuracy = []
+
+    for test in array_comparison:
+
+        if isinstance(test, dict):
+            accuracy += [calc_accuracy(test)]
+
+        else:
+            accuracy_ref = []
+            for reference in test:
+                accuracy_ref += [calc_accuracy(reference)]
+
+            accuracy += [accuracy_ref]
+
+    return np.array(accuracy)
+
+
+def convert_to_accuracy_list(array_comparison_list,
+                             range_reference=None,
+                             range_test=None):
+
+    accuracy_list = []
+    for array_comparison in array_comparison_list:
+
+        if len(array_comparison.shape) > 2:
+
+            accuracy_arr = [convert_to_accuracy_list(
+                comparison,
+                range_reference=range_reference,
+                range_test=range_test)
+                for comparison in array_comparison]
+
+        else:
+            accuracy_arr = convert_to_accuracy(array_comparison,
+                                               range_reference=range_reference,
+                                               range_test=range_test)
+
+        accuracy_list += [accuracy_arr]
+
+    return np.array(accuracy_list)
+
+
 def convert_to_roc(array_comparison,
                    range_reference=None,
                    range_test=None):
