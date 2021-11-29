@@ -1,4 +1,5 @@
 import numpy as np
+from eapprocessor.tools.slices import get_all_slices_from_indexes
 
 
 def estimate_sample_spikes(spikes, timestamps, compacted=True):
@@ -50,7 +51,7 @@ def combine_spiketrains(indexes_list, normalize=True):
     return indexes_total
 
 
-def comparison_detection_spiketrain(reference, test):
+def comparison_detection_spiketrain(reference, test, window=None):
 
     reference = np.array(reference)
     test = np.array(test)
@@ -61,11 +62,29 @@ def comparison_detection_spiketrain(reference, test):
     if len(test) > len(reference):
         test = test[:len(reference)]
 
-    truepositive = reference * test
-    variations = test - reference
-    falsepositive = np.ones(reference.shape) * (variations == 1)
-    falsenegative = np.ones(reference.shape) * (variations == -1)
-    truenegative = np.ones(reference.shape) * ((reference + test) == 0)
+    if window is None:
+        truepositive = reference * test
+        variations = test - reference
+        falsepositive = np.ones(reference.shape) * (variations == 1)
+        falsenegative = np.ones(reference.shape) * (variations == -1)
+        truenegative = np.ones(reference.shape) * ((reference + test) == 0)
+    else:
+        original_range = np.arange(len(reference))
+        actual_indexes = original_range[reference > 0]
+        slices, labels = get_all_slices_from_indexes(actual_indexes,
+                                                     window,
+                                                     (0, len(reference) - 1))
+
+        tp_arr = np.array(
+            [np.sum(test[np.arange(sl[0], sl[1] + 1)])
+             for sl in slices[labels > 0]])
+        truepositive = np.sum(tp_arr > 0)
+        fp_arr = np.array(
+            [np.sum(test[np.arange(sl[0], sl[1] + 1)])
+             for sl in slices[labels == 0]])
+        falsepositive = np.sum(fp_arr > 0)
+        falsenegative = len(slices[labels > 0]) - truepositive
+        truenegative = len(slices[labels == 0]) - falsepositive
 
     return {
         "truepositive": np.sum(truepositive),
@@ -87,24 +106,29 @@ def get_false_negatives_times(reference, test, timestamps):
     return timestamps[indexes]
 
 
-def comparison_detection_spiketrain_array(arrayreference, test):
+def comparison_detection_spiketrain_array(arrayreference, test, window=None):
 
     return np.array([comparison_detection_spiketrain(reference=reference,
-                                                     test=test)
+                                                     test=test,
+                                                     window=window)
                      for reference in arrayreference], dtype=object)
 
 
-def comparison_detection_array_spiketrain(reference, arraytest):
+def comparison_detection_array_spiketrain(reference, arraytest, window=None):
 
     return np.array([comparison_detection_spiketrain(reference=reference,
-                                                     test=test)
+                                                     test=test,
+                                                     window=window)
                      for test in arraytest], dtype=object)
 
 
-def comparison_detection_array_spiketrain_array(arrayreference, arraytest):
+def comparison_detection_array_spiketrain_array(arrayreference,
+                                                arraytest,
+                                                window=None):
 
     return np.array([comparison_detection_spiketrain_array(
-        arrayreference=arrayreference, test=test) for test in arraytest])
+        arrayreference=arrayreference, test=test, window=window)
+        for test in arraytest])
 
 
 def select_comparison(array_comparison,

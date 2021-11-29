@@ -281,6 +281,7 @@ def get_over_threshold(
 def get_results_evaluation_dataset_array(dataset_files,
                                          indexes_list,
                                          channel_idx=0,
+                                         window_time=None,
                                          is_lcadc=False,
                                          is_neo=False,
                                          origin_files=None):
@@ -326,22 +327,30 @@ def get_results_evaluation_dataset_array(dataset_files,
         else:
             evaluation_indexes = np.array(load_indexes(dataset_file))
 
+        if window_time is None:
+            window = None
+        else:
+            neo_dict, _ = load_neo(filename=origin_files[idx],
+                                   is_lcadc=is_lcadc)
+            fs = neo_dict["recordings"].info["recordings"]["fs"]
+            window = int(window_time * fs)
+
         if len(evaluation_indexes.shape) == 4:
             results = [
                 comparison_detection_array_spiketrain_array(
                     indexes_list,
-                    evaluation[channel_idx])
+                    evaluation[channel_idx], window=window)
                 for evaluation in evaluation_indexes]
 
         elif len(evaluation_indexes.shape) == 3:
             results = comparison_detection_array_spiketrain_array(
                 indexes_list,
-                evaluation_indexes[channel_idx])
+                evaluation_indexes[channel_idx], window=window)
 
         else:
             results = comparison_detection_array_spiketrain_array(
                 indexes_list,
-                evaluation_indexes)
+                evaluation_indexes, window=window)
 
         results_list += [np.array(results)]
 
