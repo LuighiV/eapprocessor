@@ -14,7 +14,7 @@ from eapprocessor.tools.load import load_converted_values, load_neo, \
     load_count_evaluation, load_indexes, load_channels
 
 from eapprocessor.evaluator.spikes import \
-    comparison_detection_array_spiketrain_array
+    comparison_detection_array_spiketrain_array, estimate_sample_spikes
 
 
 from eapprocessor.tools.cast import convert_to_list
@@ -278,6 +278,24 @@ def get_over_threshold(
     return neogen
 
 
+def get_spiketrain_list(neofile, is_lcadc=False):
+
+    neogen, _ = load_neo(neofile, is_lcadc=is_lcadc)
+
+    spiketrain_obj_list = neogen["recordings"].spiketrains
+    spiketrain_list = [np.array(spiketrain[:])
+                       for spiketrain in spiketrain_obj_list]
+    timestamps = neogen["recordings"].timestamps[:]
+
+    estimation = [estimate_sample_spikes(spikes=spiketrain,
+                                         timestamps=timestamps)
+                  for spiketrain in spiketrain_list]
+
+    indexes_list, _ = list(zip(*estimation))
+
+    return np.array(indexes_list)
+
+
 def get_results_evaluation_dataset_array(dataset_files,
                                          indexes_list,
                                          channel_idx=0,
@@ -287,74 +305,92 @@ def get_results_evaluation_dataset_array(dataset_files,
                                          origin_files=None):
 
     results_list = []
-    for idx, dataset_file in enumerate(dataset_files):
+    for dataset_file, origin_file in zip(dataset_files, origin_files):
 
-        if is_lcadc:
-            evaluation_indexes = load_indexes(dataset_file, is_lcadc=is_lcadc)
-            evaluation_indexes = convert_to_list(evaluation_indexes)
-
-            print("Evaluation indexes")
-            print(evaluation_indexes)
-
-            neo_dict, _ = load_neo(origin_files[idx], is_lcadc=is_lcadc)
-            print(neo_dict)
-            channels = np.array(load_channels(dataset_file))
-            original_indexes = [np.array(channel_indexes) for
-                                channel_indexes in neo_dict["indexes"]]
-
-            print("Original indexes")
-            print(original_indexes)
-            selected_indexes = [original_indexes[ch_idx] for ch_idx in
-                                channels]
-
-            print("Original indexes")
-            print(selected_indexes)
-            timestamps_indexes = np.arange(len(neo_dict["recordings"]
-                                               .timestamps))
-
-            if is_neo:
-                evaluation_indexes = \
-                    project_values_array_list_to_indexes_array(
-                        original_indexes=timestamps_indexes,
-                        values_array_list=evaluation_indexes,
-                        indexes_array=selected_indexes)
-            else:
-                evaluation_indexes = \
-                    project_values_array_to_indexes_array(
-                        original_indexes=timestamps_indexes,
-                        values_array=evaluation_indexes,
-                        indexes_array=selected_indexes)
-        else:
-            evaluation_indexes = np.array(load_indexes(dataset_file))
-
-        if window_time is None:
-            window = None
-        else:
-            neo_dict, _ = load_neo(filename=origin_files[idx],
-                                   is_lcadc=is_lcadc)
-            fs = neo_dict["recordings"].info["recordings"]["fs"]
-            window = int(window_time * fs)
-
-        if len(evaluation_indexes.shape) == 4:
-            results = [
-                comparison_detection_array_spiketrain_array(
-                    indexes_list,
-                    evaluation[channel_idx], window=window)
-                for evaluation in evaluation_indexes]
-
-        elif len(evaluation_indexes.shape) == 3:
-            results = comparison_detection_array_spiketrain_array(
-                indexes_list,
-                evaluation_indexes[channel_idx], window=window)
-
-        else:
-            results = comparison_detection_array_spiketrain_array(
-                indexes_list,
-                evaluation_indexes, window=window)
-
+        results = get_results_evaluation_dataset(dataset_file,
+                                                 indexes_list,
+                                                 channel_idx=channel_idx,
+                                                 window_time=window_time,
+                                                 is_lcadc=is_lcadc,
+                                                 is_neo=is_neo,
+                                                 origin_file=origin_file)
         results_list += [np.array(results)]
 
     return results_list
+
+
+def get_results_evaluation_dataset(dataset_file,
+                                   indexes_list,
+                                   channel_idx=0,
+                                   window_time=None,
+                                   is_lcadc=False,
+                                   is_neo=False,
+                                   origin_file=None):
+
+    if is_lcadc:
+        evaluation_indexes = load_indexes(dataset_file, is_lcadc=is_lcadc)
+        evaluation_indexes = convert_to_list(evaluation_indexes)
+
+        print("Evaluation indexes")
+        print(evaluation_indexes)
+
+        neo_dict, _ = load_neo(origin_file, is_lcadc=is_lcadc)
+        print(neo_dict)
+        channels = np.array(load_channels(dataset_file))
+        original_indexes = [np.array(channel_indexes) for
+                            channel_indexes in neo_dict["indexes"]]
+
+        print("Original indexes")
+        print(original_indexes)
+        selected_indexes = [original_indexes[ch_idx] for ch_idx in
+                            channels]
+
+        print("Selected indexes")
+        print(selected_indexes)
+        timestamps_indexes = np.arange(len(neo_dict["recordings"]
+                                           .timestamps))
+
+        if is_neo:
+            evaluation_indexes = \
+                project_values_array_list_to_indexes_array(
+                    original_indexes=timestamps_indexes,
+                    values_array_list=evaluation_indexes,
+                    indexes_array=selected_indexes)
+        else:
+            evaluation_indexes = \
+                project_values_array_to_indexes_array(
+                    original_indexes=timestamps_indexes,
+                    values_array=evaluation_indexes,
+                    indexes_array=selected_indexes)
+    else:
+        evaluation_indexes = np.array(load_indexes(dataset_file))
+
+    if window_time is None:
+        window = None
+    else:
+        neo_dict, _ = load_neo(filename=origin_file,
+                               is_lcadc=is_lcadc)
+        fs = neo_dict["recordings"].info["recordings"]["fs"]
+        window = int(window_time * fs)
+
+    if len(evaluation_indexes.shape) == 4:
+        results = [
+            comparison_detection_array_spiketrain_array(
+                indexes_list,
+                evaluation[channel_idx], window=window)
+            for evaluation in evaluation_indexes]
+
+    elif len(evaluation_indexes.shape) == 3:
+        results = comparison_detection_array_spiketrain_array(
+            indexes_list,
+            evaluation_indexes[channel_idx], window=window)
+
+    else:
+        results = comparison_detection_array_spiketrain_array(
+            indexes_list,
+            evaluation_indexes, window=window)
+
+    return results
 
 
 if __name__ == "__main__":

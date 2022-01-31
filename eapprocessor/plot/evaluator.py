@@ -13,6 +13,7 @@ def plot_counts_evaluator(counts, neogen, channels_idx=None):
     if channels_idx is not None:
         channels = channels[channels_idx]
 
+    figure_list = []
     for chidx in range(len(channels)):
 
         fig = plt.figure()
@@ -26,15 +27,20 @@ def plot_counts_evaluator(counts, neogen, channels_idx=None):
         noise_level = neogen["recordings"].info["recordings"]["noise_level"]
         ax.set_xlabel("Threshold/Amax")
         ax.set_ylabel("Samples over threshold")
-        ax.set_title(f"Analysis with noise_level={noise_level},"
+        ax.set_title(f"Analysis with noise level={noise_level}, "
                      f"Channel={channels[chidx]}")
         ax.legend()
+        ax.grid()
+
+        figure_list.append(fig)
+
+    return figure_list
 
 
-def plot_accuracy_evaluator(truepositive, falsenegative):
+def plot_accuracy_evaluator(truepositive, falsenegative, th_level=None):
 
     y_offset = np.zeros(len(truepositive))
-    fig = plt.figure(figsize=(8, 6))
+    fig = plt.figure(figsize=(6, 4))
 
     bar_width = 0.5
     ax = fig.add_subplot(1, 1, 1)
@@ -47,7 +53,17 @@ def plot_accuracy_evaluator(truepositive, falsenegative):
            bottom=y_offset, color="white", edgecolor="blue", hatch='////',
            label="False negative")
 
+    ax.set_xlabel("Spiketrain index")
+    ax.set_ylabel("Number of spikes")
+    if th_level is None:
+        ax.set_title("Detection rate")
+    else:
+        ax.set_title(
+            f"Detection rate at the relative threshold level={th_level}")
+
     ax.legend(loc="best")
+
+    return fig
 
 
 def plot_accuracy(reference, accuracy, label, ax=None):
@@ -121,6 +137,8 @@ def plot_roc_list(fpr_list, tpr_list, labels,
 
     if append_title is None:
         append_title = ""
+
+    figure_list =[]
     # Evaluate if list is for various spiketrains
     if len(fpr_list[0].shape) == 2:
         n_spiketrains = fpr_list[0].shape[1]
@@ -139,6 +157,9 @@ def plot_roc_list(fpr_list, tpr_list, labels,
             ax.set_ylabel("TPR(sensitivity)")
             ax.set_title(f"ROC for spiketrain {spiketrains_labels[idx]}"
                          f"{append_title}")
+            figure_list.append(fig)
+        return figure_list
+
     else:
 
         fig = plt.figure()
@@ -153,3 +174,5 @@ def plot_roc_list(fpr_list, tpr_list, labels,
         ax.set_xlabel("FPR(1-specificity)")
         ax.set_ylabel("TPR(sensitivity)")
         ax.set_title("ROC curve")
+
+        return fig

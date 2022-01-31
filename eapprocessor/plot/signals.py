@@ -27,7 +27,7 @@ def plot_signals(neogen,
     recordings = neogen["recordings"].recordings[:].T
     spiketrains = neogen["recordings"].spiketrains
     normalized = neogen["normalized"]
-    neo = neogen["neo"]
+    neo = np.array(neogen["neo"])
     w = neogen["w"]
     timestamps = np.array(neogen["recordings"].timestamps)
 
@@ -47,9 +47,10 @@ def plot_signals(neogen,
 
     neo = neo[neo_idx]
 
+    figure_list = []
     for channel in channels:
 
-        fig = plt.figure(figsize=(12, 10))
+        fig = plt.figure(figsize=(8, 6))
         ax = fig.add_subplot(3, 1, 1)
         ax.plot(
             timestamps[crange],
@@ -88,11 +89,15 @@ def plot_signals(neogen,
                              range_spikes=range_spikes)
         ax.legend(loc='best')
 
+        ax.set_xlabel("Time (s)")
+        ax.set_ylabel("Signal amplitude (uV)")
+        ax.set_xlim([timestamps[crange][0], timestamps[crange][-1]])
+
         ax = fig.add_subplot(3, 1, 2)
         ax.plot(
             timestamps[crange],
             normalized[channel][crange],
-            label="Normalized")
+            label="Normalized converted signal")
         if include_threshold:
             if channel in th_normalized["channels"]:
                 ch_idx = th_normalized["channels"].index(channel)
@@ -118,6 +123,9 @@ def plot_signals(neogen,
                     )
 
         ax.legend(loc='best')
+        ax.set_xlabel("Time (s)")
+        ax.set_ylabel("Normalized amplitude")
+        ax.set_xlim([timestamps[crange][0], timestamps[crange][-1]])
 
         if include_spiketrains:
             plot_spiketrains(ax=ax, spiketrains=spiketrains,
@@ -164,6 +172,13 @@ def plot_signals(neogen,
                              intensities=intensities,
                              range_spikes=range_spikes)
         ax.legend(loc='best')
+        ax.set_xlabel("Time (s)")
+        ax.set_ylabel("NEO amplitude")
+        ax.set_xlim([timestamps[crange][0], timestamps[crange][-1]])
+
+        figure_list.append(fig)
+
+    return figure_list
 
 
 def plot_spiketrains(ax,
@@ -235,15 +250,18 @@ def plot_transient_neo(neogen,
     if marker is None:
         marker = '-'
 
+    figure_list = []
     for idx, channel in enumerate(channels):
 
         if axes is None:
-            _, ax = plt.subplots(len(w), 1, figsize=(12, 12))
+            fig, ax = plt.subplots(len(w), 1, figsize=(8, 8))
         else:
             if isinstance(axes, (list, np.ndarray)):
                 ax = axes[idx]
             else:
                 ax = axes
+
+            fig = ax.get_figure()
 
         if labels is None:
             label = (f"Noise level={noise_level}, fs={fs}, "
@@ -267,11 +285,17 @@ def plot_transient_neo(neogen,
                 marker,
                 label=label + f", w={w_value}")
             cax.set_xlabel("Time (s)")
-            cax.set_ylabel("Amplitude")
+            cax.set_ylabel("NEO Amplitude")
             cax.legend(loc="best")
             if w_i == 0:
                 cax.set_title(f"NEO values for channel {channel}")
 
+            cax.set_xlim([timestamps[crange][0], timestamps[crange][-1]])
+            cax.grid()
+
+        figure_list.append(fig)
+
+    return figure_list
 
 def plot_transient_converted(adcgen,
                              crange=None,
