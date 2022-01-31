@@ -56,11 +56,13 @@ def comparison_detection_spiketrain(reference, test, window=None):
     reference = np.array(reference)
     test = np.array(test)
 
-    if len(reference) > len(test):
-        reference = reference[:len(test)]
+    # This section induce unexpected results, you must ensure the sizes
+    # are equal
+    # if len(reference) > len(test):
+    #    reference = reference[:len(test)]
 
-    if len(test) > len(reference):
-        test = test[:len(reference)]
+    # if len(test) > len(reference):
+    #    test = test[:len(reference)]
 
     if window is None:
         truepositive = reference * test
