@@ -1,6 +1,6 @@
 #!/bin/python3
 import numpy as np
-from typing import Union, List, Tuple, Iterable
+from typing import Union, List, Tuple, Iterable, Callable
 
 
 def normalize(array: Union[List[float], np.ndarray],
@@ -26,10 +26,14 @@ def normalize(array: Union[List[float], np.ndarray],
     return normalized
 
 
-def convert_lcadc(array: Union[List[float], np.ndarray],
+def convert_lcadc(array: Union[List[float],
+                               np.ndarray],
                   voltage_ref: float,
                   resolution: int,
-                  bipolar: bool = False) -> Tuple[Iterable, Iterable]:
+                  bipolar: bool = False,
+                  verbose: bool = False,
+                  operator: Callable[[float], int] = int) -> Tuple[Iterable,
+                                                                   Iterable]:
     """Convert array to numeric values with LCADC model
 
     :param array: array of float values
@@ -53,9 +57,33 @@ def convert_lcadc(array: Union[List[float], np.ndarray],
 
     latest_ref = 0
     for idx, item in enumerate(array):
+        if(verbose):
+            print(f"value:{item}, latest ref: {latest_ref}, step:{step}")
         if(idx == 0 or (np.abs(item - latest_ref) >= step)):
-            newarray += [quantize(item, voltage_ref=voltage_ref,
-                                  resolution=resolution, bipolar=bipolar)]
+
+            if(idx == 0):
+                newarray += [
+                    quantize(
+                        item -
+                        latest_ref,
+                        voltage_ref=voltage_ref,
+                        resolution=resolution,
+                        bipolar=bipolar,
+                        operator=operator)]
+            else:
+                value = quantize(
+                    item -
+                    latest_ref,
+                    voltage_ref=2 * voltage_ref,
+                    resolution=resolution,
+                    bipolar=False,
+                    operator=operator)
+                if(verbose):
+                    print(f"Append value:{value}")
+                newarray += [
+                    newarray[-1] + value
+                ]
+
             indexes += [idx]
             latest_ref = dac(newarray[-1], voltage_ref=voltage_ref,
                              resolution=resolution, bipolar=bipolar)
@@ -67,7 +95,8 @@ def convert_lcadc(array: Union[List[float], np.ndarray],
 def convert_array(array: Union[List[float], np.ndarray],
                   voltage_ref: float,
                   resolution: int,
-                  bipolar: bool = False) -> np.ndarray:
+                  bipolar: bool = False,
+                  operator: Callable[[float], int] = int) -> np.ndarray:
     """Convert array to numeric values with classic SAR model
 
     :param array: array of float values
@@ -84,10 +113,11 @@ def convert_array(array: Union[List[float], np.ndarray],
     return np.array([quantize(x,
                               voltage_ref=voltage_ref,
                               resolution=resolution,
-                              bipolar=bipolar) for x in array])
+                              bipolar=bipolar,
+                              operator=operator) for x in array])
 
 
-def dac(value: int,
+def dac(value: Union[List[int], np.ndarray, int],
         voltage_ref: float,
         resolution: int,
         bipolar: bool = False) -> float:
@@ -105,6 +135,10 @@ def dac(value: int,
     :rtype: float
     """
 
+    if isinstance(value, (list, np.ndarray)):
+        return np.array([dac(element, voltage_ref, resolution, bipolar)
+                         for element in value])
+
     max_values = 2**resolution
     if bipolar:
         step = float(2 * voltage_ref / max_values)
@@ -119,7 +153,8 @@ def dac(value: int,
 def quantize(value: float,
              voltage_ref: float,
              resolution: int,
-             bipolar: bool = False) -> int:
+             bipolar: bool = False,
+             operator: Callable[[float], int] = int) -> int:
     """Quantize value from analog to digital.
 
     :param value: Floating value to be converted
@@ -137,10 +172,10 @@ def quantize(value: float,
     max_values = 2**resolution
     if bipolar:
         step = float(2 * voltage_ref / max_values)
-        quantized = int((value + voltage_ref) / step)
+        quantized = operator((value + voltage_ref) / step)
     else:
         step = float(voltage_ref / max_values)
-        quantized = int(value / step)
+        quantized = operator(value / step)
     return quantized
 
 
