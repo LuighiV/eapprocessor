@@ -1,0 +1,3 @@
+# Exclude from stats
+*.asc linguist-vendored
+*.ASC linguist-vendored
