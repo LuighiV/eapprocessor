@@ -1,6 +1,7 @@
 from pathlib import Path
 import h5py
 import MEArec as mr
+import numpy as np
 
 
 def save_converted_values(adcgen, filename=None, is_lcadc=False):
@@ -20,13 +21,13 @@ def save_converted_values_to_file(adcgen, f, is_lcadc=False):
         for idx, adc in enumerate(adcgen["lcadc"]):
             if len(adc) > 0:
                 f.create_dataset('lcadc/' + str(idx),
-                                 data=adc)
+                                 data=list(adc))
             if len(adcgen["indexes"][idx]) > 0:
                 f.create_dataset('indexes/' + str(idx),
-                                 data=adcgen["indexes"][idx])
+                                 data=list(adcgen["indexes"][idx]))
             if len(adcgen["normalized"][idx]) > 0:
                 f.create_dataset('normalized/' + str(idx),
-                                 data=adcgen["normalized"][idx])
+                                 data=list(adcgen["normalized"][idx]))
             idx_array += [idx]
 
         if len(idx_array) > 0:

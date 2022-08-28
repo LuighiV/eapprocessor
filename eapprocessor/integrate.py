@@ -1,5 +1,5 @@
 #!/bin/python3
-from typing import Tuple, Union
+from typing import Tuple, Union, Callable
 import numpy as np
 import numpy.typing as npt
 
@@ -18,7 +18,9 @@ from eapprocessor.detector.threshold \
 def convert_adc_recordings(
         dataset: npt.NDArray[np.float64],
         voltage_ref: float,
-        resolution: int) -> npt.NDArray[np.float64]:
+        resolution: int,
+        bipolar: bool = True,
+        operator: Callable[[float], int] = round) -> npt.NDArray[np.float64]:
     """Convert array of recordings to digital values.
 
     :param dataset: array of recordings, shape length 2 [channel[recordings]]
@@ -37,17 +39,21 @@ def convert_adc_recordings(
         convert_array(array,
                       voltage_ref=voltage_ref,
                       resolution=resolution,
-                      bipolar=True) for array in arrays]
+                      bipolar=bipolar,
+                      operator=operator) for array in arrays]
 
     saveconverted = np.array(converted)
     return saveconverted
 
 
 def convert_lcadc_recordings(
-        dataset: npt.NDArray[np.float64],
-        voltage_ref: float,
-        resolution: int) -> Tuple[npt.NDArray[np.object_],
-                                  npt.NDArray[np.object_]]:
+    dataset: npt.NDArray[np.float64],
+    voltage_ref: float,
+    resolution: int,
+    bipolar: bool = True,
+    operator: Callable[[float],
+                       int] = round) -> Tuple[npt.NDArray[np.object_],
+                                              npt.NDArray[np.object_]]:
     """Convert array of recordings with LCADC technique
 
     :param dataset: array of recordings converted via LCADC,
@@ -69,7 +75,8 @@ def convert_lcadc_recordings(
     for array in arrays:
         index, convert = convert_lcadc(array, voltage_ref=voltage_ref,
                                        resolution=resolution,
-                                       bipolar=True)
+                                       bipolar=bipolar,
+                                       operator=operator)
         converted += [convert]
         indexes += [index]
 
@@ -82,7 +89,8 @@ def convert_lcadc_recordings(
 
 def normalize_arrays(arrays: Union[npt.NDArray[np.float64],
                                    npt.NDArray[np.object_]],
-                     resolution: int) -> npt.NDArray[np.float64]:
+                     resolution: int,
+                     bipolar: bool = True) -> npt.NDArray[np.float64]:
     """Normalize array of array of converted values
 
     :param arrays: Array of array of converted values, dimension length 2
@@ -98,7 +106,7 @@ def normalize_arrays(arrays: Union[npt.NDArray[np.float64],
         normalize(
             array,
             resolution=resolution,
-            bipolar=True) for array in arrays]
+            bipolar=bipolar) for array in arrays]
     return np.array(normalized)
 
 

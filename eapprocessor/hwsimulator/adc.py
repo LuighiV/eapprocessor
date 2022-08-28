@@ -64,16 +64,14 @@ def convert_lcadc(array: Union[List[float],
             if(idx == 0):
                 newarray += [
                     quantize(
-                        item -
-                        latest_ref,
+                        item - latest_ref,
                         voltage_ref=voltage_ref,
                         resolution=resolution,
                         bipolar=bipolar,
                         operator=operator)]
             else:
                 value = quantize(
-                    item -
-                    latest_ref,
+                    item - latest_ref,
                     voltage_ref=2 * voltage_ref,
                     resolution=resolution,
                     bipolar=False,
@@ -120,7 +118,7 @@ def convert_array(array: Union[List[float], np.ndarray],
 def dac(value: Union[List[int], np.ndarray, int],
         voltage_ref: float,
         resolution: int,
-        bipolar: bool = False) -> float:
+        bipolar: bool = False) -> Union[float, np.ndarray]:
     """Convert to analog value from digital
 
     :param value: Numeric value to be converted to float
