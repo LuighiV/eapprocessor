@@ -4,7 +4,7 @@ import numpy as np
 
 
 def resample(x, y, X_new, kind):
-    f = interpolate.interp1d(x, y, kind=kind)
+    f = interpolate.make_interp_spline(x, y, k=kind)
     return f(X_new)
 
 
