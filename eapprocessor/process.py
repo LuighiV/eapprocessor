@@ -325,7 +325,9 @@ def get_results_evaluation_dataset(dataset_file,
                                    window_time=None,
                                    is_lcadc=False,
                                    is_neo=False,
-                                   origin_file=None):
+                                   origin_file=None,
+                                   l_limit_idx=None,
+                                   h_limit_idx=None):
 
     if is_lcadc:
         evaluation_indexes = load_indexes(dataset_file, is_lcadc=is_lcadc)
@@ -373,7 +375,16 @@ def get_results_evaluation_dataset(dataset_file,
         fs = neo_dict["recordings"].info["recordings"]["fs"]
         window = int(window_time * fs)
 
+    print("lower limit:", l_limit_idx)
+    print("higher limit:", h_limit_idx)
+
+    if l_limit_idx is not None and h_limit_idx is not None:
+        indexes_list = [indexes[l_limit_idx:h_limit_idx+1] for indexes in
+                        indexes_list]
+
     if len(evaluation_indexes.shape) == 4:
+        if l_limit_idx is not None and h_limit_idx is not None:
+            evaluation_indexes = evaluation_indexes[:,:,:,l_limit_idx:h_limit_idx+1]
         results = [
             comparison_detection_array_spiketrain_array(
                 indexes_list,
@@ -381,14 +392,20 @@ def get_results_evaluation_dataset(dataset_file,
             for evaluation in evaluation_indexes]
 
     elif len(evaluation_indexes.shape) == 3:
+        if l_limit_idx is not None and h_limit_idx is not None:
+            evaluation_indexes = evaluation_indexes[:,:,l_limit_idx:h_limit_idx+1]
         results = comparison_detection_array_spiketrain_array(
             indexes_list,
             evaluation_indexes[channel_idx], window=window)
 
     else:
+        if l_limit_idx is not None and h_limit_idx is not None:
+            evaluation_indexes = evaluation_indexes[l_limit_idx:h_limit_idx+1]
         results = comparison_detection_array_spiketrain_array(
             indexes_list,
             evaluation_indexes, window=window)
+
+    print("Shape evaluation:", evaluation_indexes.shape)
 
     return results
 
