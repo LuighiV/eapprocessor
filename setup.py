@@ -29,7 +29,7 @@ setuptools.setup(
     install_requires=[
         'colorlog',
         'numpy',
-        'MEArec @ git+git://github.com/LuighiV/MEArec@master#egg=MEArec',
+        'MEArec',
         'NEURON',
         'matplotlib',
         'h5py',
