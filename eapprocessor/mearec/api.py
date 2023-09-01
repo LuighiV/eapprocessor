@@ -80,7 +80,7 @@ def generate_templates(
         cell_models_folder: Union[str, Path] = None,
         templates_folder: Union[str, Path] = None,
         templates_params_file: str = None,
-        n_jobs: int = None,
+        n_jobs: int = 0,
         recompile: bool = None,
         parallel: bool = None,
         verbose: bool = None,
@@ -174,12 +174,12 @@ def generate_templates(
 
 
 def generate_recordings(
-        config_folder: Union[str, Path] = None,
+        config_folder: Union[str, Path, None] = None,
         recordings_params_file: Union[str, Path] = None,
         templates_folder: Union[str, Path] = None,
         recordings_folder: Union[str, Path] = None,
         verbose: bool = None,
-        njobs: int = None,
+        n_jobs: int = 0,
         fname: Union[str, Path] = None,
         fs: int = None,
         noise_level: float = 10,
@@ -252,7 +252,7 @@ def generate_recordings(
         templates=templates_file,
         params=params_dict,
         verbose=verbose,
-        n_jobs=njobs)
+        n_jobs=n_jobs)
 
     info = recordings.info
 
