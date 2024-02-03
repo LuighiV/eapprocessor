@@ -30,6 +30,8 @@ setuptools.setup(
         'colorlog',
         'numpy',
         'MEArec',
+        # 'MEArec @ git+https://github.com/SpikeInterface/MEArec@6b560fe42dfef8c3910dcd70a76f71cadc18fc37',
+        # 'MEArec @ git+https://github.com/SpikeInterface/MEArec@v1.7.2',
         'NEURON',
         'matplotlib',
         'h5py',
